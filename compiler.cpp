@@ -8,7 +8,7 @@
 #include "commands.h"
 #include "text_buf.h"
 
-int notmain() {
+int main() {
 
     AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt");
 
@@ -58,10 +58,10 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
 
         // ========================= LOOKING FOR "PUSH RCX" STRINGS =========================
 
-        if (sscanf(curr_cs, "%s r%cx", curr_cmd_name, &reg_letr) == 2) {
+        if (sscanf(curr_cs, "%s r%cx%n", curr_cmd_name, &reg_letr) == 2) {
             reg_id = reg_letr - 'a' + 1;
             cmd_val = reg_id;
-            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds);
+            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds); // todo if 0 abort
             cmd_id |= 1 << 5;
         }
         // ========================= LOOKING FOR "PUSH 513" STRINGS =========================
