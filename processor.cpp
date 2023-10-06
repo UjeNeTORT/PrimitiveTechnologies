@@ -178,7 +178,7 @@ int *TokenizeCmdIntArr(const char **asm_lines_raw, size_t n_instructs) {
     for (int i = 0; i < n_words; i++) {
         asm_lines[i] = asm_codes.data.buf[i];
     }
-    printf("Tokenize: yoyo\n");
+
     DtorStack(&asm_codes);
 
     return asm_lines;

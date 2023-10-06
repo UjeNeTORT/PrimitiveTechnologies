@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include "my_hash.h"
-#include "./stack_lib/stack.h"
+#include "stack.h"
 
 enum POISON_OUT {
     POISON_ERR_SIDE = -1,
