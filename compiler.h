@@ -21,5 +21,7 @@ enum ASM_OUT AssembleMath     (const char * fin_name, const char * fout_name, co
 usr_cmd     *ParseCmdNames    (const char * filename, int * n_cmds);
 int          ForbiddenCmdCode (int code);
 usr_cmd      CmdCtor          ();
+int          GetCmdCode       (usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size);
+int          WriteCodeSegment (const char * fout_name, long long * code_seg, int code_seg_len);
 
 #endif // COMPILER_H

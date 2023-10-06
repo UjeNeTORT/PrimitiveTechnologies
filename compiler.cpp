@@ -23,65 +23,111 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
     assert(fin_name);
     assert(fout_name);
 
+    //==================================================== READ TEXT FROM IN FILE AND SPLIT IT INTO LINES
     char *        in_buf  = NULL;
     const char ** in_text = NULL;
-
     int n_lines = ReadText(fin_name, &in_text, &in_buf);
 
+    //====================== OPEN COMMANDS-DEFINING FILE AND CREATE STRUCT ARR OF CMD_NAME-CMD_CODE PAIRS
     int n_cmds = 0;
     usr_cmd * cmds_arr = ParseCmdNames(cmds_file, &n_cmds);
 
+
     char * curr_cmd_name = (char *) calloc(1, MAX_CMD);
-    int    cmd_val       = 0;
-    int    prev_val      = 0;
-    int    scan_res      = __INT_MAX__;
+
+    long long cmd_val       = 0;
+    int       prev_val      = 0;
+    int       scan_res      = __INT_MAX__;
+
+    int  cmd_id   = 0;
+    char reg_letr = 0;
+    int  reg_id   = 0;
+
+    char        *curr_cs = (char *)      calloc(MAX_CMD, sizeof(char));      // contains text line
+    long long * code_seg = (long long *) calloc(n_lines, sizeof(long long)); // result array
 
     FILE * fout = fopen(fout_name, "w");
 
-    for (int nline = 0; nline < n_lines; nline++) {
+    for (int ip = 0; ip < n_lines; ip++) {
 
-        scan_res = sscanf(in_text[nline], "%s %d", curr_cmd_name, &cmd_val);
+        // ==================================== COMMENTS ====================================
+        strncpy(curr_cs, in_text[ip], MAX_CMD);
+        char *comm_pos = strchr(curr_cs, ';');
+        if (comm_pos)
+            *comm_pos = 0;
 
-        if (scan_res == 2 || scan_res == 1) {
+        // ========================= LOOKING FOR "PUSH RCX" STRINGS =========================
 
-            for (int cmd_cnt = 0; cmd_cnt < n_cmds; cmd_cnt++) {
-
-                if (strcmp(curr_cmd_name, cmds_arr[cmd_cnt].name) == 0) {
-
-                    if (scan_res == 2)
-                        fprintf(fout, "%d %d\n", cmds_arr[cmd_cnt].code, cmd_val);
-                    else
-                        fprintf(fout, "%d\n",    cmds_arr[cmd_cnt].code);
-
-                    break;
-                }
-
-                if (cmd_cnt == n_cmds - 1) {
-
-                    fprintf(stderr, "AssembleMath: command name (%s) not found in \"%s\"\n", curr_cmd_name, cmds_file);
-                    fclose(fout);
-                    abort();
-                }
-            }
+        if (sscanf(curr_cs, "%s r%cx", curr_cmd_name, &reg_letr) == 2) {
+            reg_id = reg_letr - 'a' + 1;
+            cmd_val = reg_id;
+            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds);
+            cmd_id |= 1 << 5;
         }
-
-        else if (scan_res == EOF || scan_res == 0) {
-            break;
+        // ========================= LOOKING FOR "PUSH 513" STRINGS =========================
+        else if (sscanf(curr_cs, "%s %lld", curr_cmd_name, &cmd_val) == 2) {
+            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds);
+            cmd_id |= 1 << 4;
         }
-
+        else if (sscanf(curr_cs, "%s", curr_cmd_name) == 1) {
+            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds);
+        }
+        // ============================== NONE OF THESE MATCH ===============================
         else {
-            fprintf(stderr, "AssembleMath: couldnt read anything from string %d\n", nline);
+            fprintf(stderr, "AssembleMath: invalid input, string: %s\n", in_text[ip]);
+
             fclose(fout);
-            abort();
+            free(curr_cmd_name);
+            free(curr_cs);
+            return ASM_OUT_ERR;
         }
+
+        code_seg[ip] = (cmd_id << 8) + cmd_val;
+
+        cmd_id  = 0;
+        cmd_val = 0;
+        reg_id  = 0;
 
     }
-
     fclose(fout);
 
     free(curr_cmd_name);
 
+    WriteCodeSegment(fout_name, code_seg, n_lines);
+
+    free(code_seg);
+
     return ASM_OUT_NO_ERR;
+}
+
+int WriteCodeSegment(const char * fout_name, long long * code_seg, int code_seg_len) {
+
+    assert(fout_name);
+    assert(code_seg);
+
+    FILE * fout = fopen(fout_name, "w");
+    assert(fout);
+
+    int cmd_id  = 0;
+    int cmd_val = 0;
+
+    for (int ip = 0; ip < code_seg_len; ip++) {
+
+        cmd_id  = code_seg[ip] >> 8;
+        cmd_val = code_seg[ip] & 0xFF; // 8 zeros 8 1s
+
+        if (cmd_val)
+            fprintf(fout, "%d %d\n", cmd_id, cmd_val);
+        else
+            fprintf(fout, "%d\n", cmd_id);
+
+        cmd_id  = 0;
+        cmd_val = 0;
+    }
+
+    fclose(fout);
+
+    return 0; // todo enum
 }
 
 /**
@@ -105,10 +151,11 @@ usr_cmd * ParseCmdNames(const char * filename, int * n_cmds) {
     }
 
     size_t  cmd_cnt  = 0;
+    int scan_res     = __INT_MAX__;
 
     for (int nline = 0; nline < n_lines; nline++) {
 
-        int scan_res = sscanf(text[nline], "%s %d", curr_cmd.name, &curr_cmd.code);
+        scan_res = sscanf(text[nline], "%s %d", curr_cmd.name, &curr_cmd.code);
 
         int prev_cmd_code = 0;
 
@@ -168,6 +215,16 @@ usr_cmd * ParseCmdNames(const char * filename, int * n_cmds) {
 
     *n_cmds = cmd_cnt;
     return cmd_arr;
+}
+
+int GetCmdCode(usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size) {
+
+    for (int i = 0; i < cmd_arr_size; i++) {
+        if (strcmp(cmd_arr[i].name, cmd_name) == 0)
+            return cmd_arr[i].code;
+    }
+
+    return 0;
 }
 
 int ForbiddenCmdCode(int code) {

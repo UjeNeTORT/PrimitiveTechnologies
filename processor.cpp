@@ -50,11 +50,12 @@ int main() {
             case -1:                                                         // hlt
 
                 fprintf(stderr, "hlt encountered, goodbye!\n");
+
                 free(asm_nums_init);
                 DtorStack(&my_cpu.stk);
                 return 0;
 
-            case 1:                                                         // push imm_val
+            case 17:                                                        // push imm_val
 
                 fprintf(stderr, "Push\n");
                 PushStack(&my_cpu.stk, *++asm_nums);
