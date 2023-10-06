@@ -6,12 +6,12 @@
 
 struct CPU {
 
-    stack stk;
-
     int   rax;
     int   rbx;
     int   rcx;
     int   rdx;
+
+    stack stk;
 
 };
 

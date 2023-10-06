@@ -16,6 +16,8 @@ int WordsNum(const char *str);
 
 int main() {
 
+    AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt");
+
     //================================================================== CREATE AND INITIALIZE CPU STRUCTURE
 
     CPU my_cpu = {};
@@ -40,8 +42,10 @@ int main() {
     //-------------------------------- assume that pseudo-asm file has no mistakes in it (temporary solution)
 
     POP_OUT pop_err = POP_NO_ERR;
-    int val = 0;
-    int in_var = 0;
+    int val     = 0;
+    int in_var  = 0;
+    int reg_id  = 0;
+    int *regptr = 0;
 
     for (int i_nstruct = 0; i_nstruct < n_instructs; i_nstruct++) {
 
@@ -57,15 +61,37 @@ int main() {
 
             case 17:                                                        // push imm_val
 
-                fprintf(stderr, "Push\n");
+                fprintf(stderr, "Push imm val\n");
                 PushStack(&my_cpu.stk, *++asm_nums);
                 break;
 
-            case 2:                                                         // pop
+            case 33:                                                        // push from register to stack
+
+                fprintf(stderr, "Push from register\n");
+                reg_id = *++asm_nums;
+                val = *((int *) &my_cpu + reg_id - 1);
+                PushStack(&my_cpu.stk, val);
+
+                val = 0;
+                reg_id = 0;
+                break;
+
+            case 11:                                                        // pop
 
                 fprintf(stderr, "Pop\n");
                 pop_err = POP_NO_ERR;
                 PopStack(&my_cpu.stk, &pop_err);
+                break;
+
+            case 43:                                                       // pop to register from stack
+
+                fprintf(stderr, "Pop to register\n");
+                pop_err = POP_NO_ERR;
+                val = PopStack(&my_cpu.stk, &pop_err);
+
+                reg_id = *++asm_nums;
+                regptr = (int *) &my_cpu + reg_id - 1;
+                *regptr = val;
                 break;
 
             case 3:                                                         // in
@@ -82,7 +108,7 @@ int main() {
                 fprintf(stderr, "Out:   %d\n", PopStack(&my_cpu.stk, &pop_err));
                 break;
 
-            case 11:                                                        // add
+            case 5:                                                         // add
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -90,7 +116,7 @@ int main() {
                 PushStack(&my_cpu.stk, val);
                 break;
 
-            case 12:                                                        // sub
+            case 6:                                                         // sub
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -99,7 +125,7 @@ int main() {
                 PushStack(&my_cpu.stk, val);
                 break;
 
-            case 13:                                                        // mul
+            case 7:                                                        // mul
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -107,7 +133,7 @@ int main() {
                 PushStack(&my_cpu.stk, val);
                 break;
 
-            case 14:                                                        // div
+            case 8:                                                         // div
 
                 pop_err = POP_NO_ERR;
                 int denominator = PopStack(&my_cpu.stk, &pop_err);
