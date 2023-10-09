@@ -25,17 +25,20 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
 
     //==================================================== READ TEXT FROM IN FILE AND SPLIT IT INTO LINES
     char *        in_buf  = NULL;
-    const char ** in_text = NULL;
+    const char ** in_text = NULL; // program text split into lines
     int n_lines = ReadText(fin_name, &in_text, &in_buf);
 
     //====================== OPEN COMMANDS-DEFINING FILE AND CREATE STRUCT ARR OF CMD_NAME-CMD_CODE PAIRS
-    int n_cmds = 0;
-    usr_cmd * cmds_arr = ParseCmdNames(cmds_file, &n_cmds);
+    // int n_cmds = 0;
+    // usr_cmd * cmds_arr = ParseCmdNames(cmds_file, &n_cmds); // array containing structs {cmd_name , cmd_code}
 
+    //====================== GET ALL THE COMMANDS DATA FROM ARRAY FROM COMMANDS_H =======================
+    int n_cmds = sizeof(CMDS_ARR) / sizeof(*CMDS_ARR);
 
-    char * curr_cmd_name = (char *) calloc(1, MAX_CMD);
+    //====================== TRANSLATE TEXT COMMANDS TO NUMBERS AND PRINT THEM ==========================
+    char * curr_cmd_name = (char *) calloc(1, MAX_CMD);     // temporary variable supposed to contain keyword (push pop etc)
 
-    long long cmd_val       = 0;
+    long long cmd_val       = 0;                            //
     int       prev_val      = 0;
     int       scan_res      = __INT_MAX__;
 
@@ -65,16 +68,16 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
                 abort();
             }
             cmd_val = reg_id;
-            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds); // todo if 0 abort
+            cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds); // todo if 0 abort
             cmd_id |= 1 << 5;
         }
         // ========================= LOOKING FOR "PUSH 513" STRINGS =========================
         else if (sscanf(curr_cs, "%s %lld", curr_cmd_name, &cmd_val) == 2) {
-            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds);
+            cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
             cmd_id |= 1 << 4;
         }
         else if (sscanf(curr_cs, "%s", curr_cmd_name) == 1) {
-            cmd_id |= GetCmdCode(cmds_arr, curr_cmd_name, n_cmds);
+            cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
         }
         // ============================== NONE OF THESE MATCH ===============================
         else {
@@ -221,7 +224,7 @@ usr_cmd * ParseCmdNames(const char * filename, int * n_cmds) {
     return cmd_arr;
 }
 
-int GetCmdCode(usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size) {
+int GetCmdCode(const usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size) {
 
     for (int i = 0; i < cmd_arr_size; i++) {
         if (strcmp(cmd_arr[i].name, cmd_name) == 0)

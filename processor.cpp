@@ -12,11 +12,10 @@ const int    MAX_CMD_CODE = 8;
 
 int *TokenizeCmdIntArr(const char **asm_lines_raw, size_t n_instructs);
 int DivideInts(int numerator, int denominator);
-int WordsNum(const char *str);
 
 int main() {
 
-    AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt");
+    AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt"); // temporary decision TODO
 
     //================================================================== CREATE AND INITIALIZE CPU STRUCTURE
 
@@ -78,12 +77,12 @@ int main() {
 
             case 11:                                                        // pop
 
-                fprintf(stderr, "Pop\n");
+                fprintf(stderr, "Pop immediate number\n");
                 pop_err = POP_NO_ERR;
                 PopStack(&my_cpu.stk, &pop_err);
                 break;
 
-            case 43:                                                       // pop to register from stack
+            case 0x2B:                                                       // 43 - pop to register from stack
 
                 fprintf(stderr, "Pop to register\n");
                 pop_err = POP_NO_ERR;
@@ -153,28 +152,6 @@ int main() {
 
     return 0;
 }
-
-int WordsNum(const char *str) {
-
-    int n_words = 0;
-
-    int inside_word = 0;
-
-    for (int i = 0; str[i] != 0 && str[i] != '\n' && str[i] != EOF; i++) {
-
-        if (!isspace(str[i])) {
-            inside_word = 1;
-        }
-
-        else if (inside_word == 1) {
-            n_words++;
-            inside_word = 0;
-        }
-    }
-
-    return n_words;
-}
-
 
 int *TokenizeCmdIntArr(const char **asm_lines_raw, size_t n_instructs) {
 
