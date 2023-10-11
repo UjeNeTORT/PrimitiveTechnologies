@@ -24,6 +24,7 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
     assert(fout_name);
 
     //==================== READ TEXT FROM PROGRAM FILE AND SPLIT IT INTO LINES ==========================
+
     char *        in_buf  = NULL;
     const char ** in_text = NULL; // program text split into lines
 
@@ -42,6 +43,8 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
 
     // TODO also to bin file
     WriteCodeSegmentTxt(fout_name, prog_code, n_lines);
+
+    WriteCodeSegmentBin("translated.bin", prog_code, n_lines); // TODO filename to vars
 
     // TODO to func
     free(prog_code);
@@ -64,6 +67,7 @@ int PreprocessProgram (const char * text_buf, char * buf_ready, char ** text_rea
     text_ready = ParseLines(buf_ready, n_lines);
 
     // ==================================== COMMENTS ====================================
+
     for (int i = 0; i < buf_size; i++)
         if (buf_ready[i] == ';')
             buf_ready[i] = 0;
@@ -79,6 +83,7 @@ int TranslateProgram (const char ** text_ready, int n_lines, long long * prog_co
     assert(prog_code);
 
     //====================== GET ALL THE COMMANDS DATA FROM ARRAY FROM COMMANDS_H =======================
+
     int n_cmds = sizeof(CMDS_ARR) / sizeof(*CMDS_ARR);
 
 
@@ -99,11 +104,15 @@ int TranslateProgram (const char ** text_ready, int n_lines, long long * prog_co
         // ========================= LOOKING FOR "PUSH RCX" STRINGS =========================
 
         if (sscanf(curr_cs, "%s r%cx", curr_cmd_name, &reg_letr) == 2) {
+
             reg_id = reg_letr - 'a' + 1;
+
             if (reg_id > 4) {
+
                 fprintf(stderr, "only 4 registers allowed! (%d)\n", reg_id);
                 abort();
             }
+
             cmd_val = reg_id;
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds); // todo if 0 abort
             cmd_id |= 1 << 5;
@@ -112,10 +121,12 @@ int TranslateProgram (const char ** text_ready, int n_lines, long long * prog_co
         // ===================== LOOKING FOR "PUSH 513"-LIKE STRINGS =========================
 
         else if (sscanf(curr_cs, "%s %lld", curr_cmd_name, &cmd_val) == 2) {
+
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
             cmd_id |= 1 << 4;
         }
         else if (sscanf(curr_cs, "%s", curr_cmd_name) == 1) {
+
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
         }
 
@@ -145,10 +156,10 @@ int TranslateProgram (const char ** text_ready, int n_lines, long long * prog_co
     return ASM_OUT_NO_ERR;
 }
 
-int WriteCodeSegmentTxt(const char * fout_name, long long * code_seg, int code_seg_len) {
+int WriteCodeSegmentTxt(const char * fout_name, long long * prog_code, int code_seg_len) {
 
     assert(fout_name);
-    assert(code_seg);
+    assert(prog_code);
 
     FILE * fout = fopen(fout_name, "w");
     assert(fout);
@@ -158,8 +169,8 @@ int WriteCodeSegmentTxt(const char * fout_name, long long * code_seg, int code_s
 
     for (int ip = 0; ip < code_seg_len; ip++) {
 
-        cmd_id  = code_seg[ip] >> 8;
-        cmd_val = code_seg[ip] & 0xFF; // 8 zeros 8 1s
+        cmd_id  = prog_code[ip] >> 8;
+        cmd_val = prog_code[ip] & 0xFF; // 8 zeros 8 1s
 
         if (cmd_val)
             fprintf(fout, "%d %d\n", cmd_id, cmd_val);
@@ -173,6 +184,17 @@ int WriteCodeSegmentTxt(const char * fout_name, long long * code_seg, int code_s
     fclose(fout);
 
     return 0; // todo enum
+}
+
+int WriteCodeSegmentBin (const char * fout_name, long long * prog_code, int prog_code_lines) {
+
+    assert(fout_name);
+    assert(prog_code);
+
+    FILE * fout = fopen(fout_name, "wb");
+    assert(fout);
+
+    fwrite(prog_code, sizeof(*prog_code), prog_code_lines, fout); // TODO check return val
 }
 
 /**
@@ -192,6 +214,7 @@ usr_cmd * ParseCmdNames(const char * filename, int * n_cmds) {
 
     usr_cmd * cmd_arr = (usr_cmd *) calloc(n_lines, sizeof(usr_cmd));
     if (!cmd_arr) {
+
         fprintf(stderr, "ParseCommands: CANT ALLOCATE MEMORY FOR COMMANDS ARRAY\n");
         return NULL;
     }

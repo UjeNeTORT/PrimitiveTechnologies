@@ -23,8 +23,8 @@ int          ForbiddenCmdCode    (int code);
 usr_cmd      CmdCtor             ();
 int          GetCmdCode          (const usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size);
 int          PreprocessProgram   (const char * text_buf, char * buf_ready, char ** text_ready, int n_lines, int buf_size);
-int          TranslateProgram    (const char ** text_ready, int n_lines, long long * code_seg);
-int          WriteCodeSegmentTxt (const char * fout_name, long long * code_seg, int code_seg_len);
-int          WriteCodeSegmentBin (const char * fout_name, long long * code_seg, int code_seg_len);
+int          TranslateProgram    (const char ** text_ready, int n_lines, long long * prog_code);
+int          WriteCodeSegmentTxt (const char * fout_name, long long * prog_code, int code_seg_len);
+int          WriteCodeSegmentBin (const char * fout_name, long long * prog_code, int prog_code_lines);
 
 #endif // COMPILER_H
