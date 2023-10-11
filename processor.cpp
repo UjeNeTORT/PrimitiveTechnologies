@@ -6,11 +6,14 @@
 #include "stack.h"
 #include "text_buf.h"
 
+#define TXT_FILE_MODE
+
 const char * ASM_FILENAME = "ex1_translated.txt";
 const int    CPU_STK_CAPA = 100;
 const int    MAX_CMD_CODE = 8;
 
 int *TokenizeCmdIntArr(const char **asm_lines_raw, size_t n_instructs);
+int *TokenizeCmdBinArr(const char **asm_lines_raw, size_t n_instructs);
 int DivideInts(int numerator, int denominator);
 
 int main() {
@@ -30,7 +33,9 @@ int main() {
 
     char        *buf           = NULL;
     const char **asm_lines_raw = NULL;
-    int          n_instructs   = ReadText(ASM_FILENAME, &asm_lines_raw, &buf);
+
+    int          buf_size = 0;
+    int          n_instructs   = ReadText(ASM_FILENAME, &asm_lines_raw, &buf, &buf_size);
 
     //==================================================== FORM ARRAY OF INT: CMD_CODES AND ARGS ALL TOGETHER
 
@@ -50,7 +55,7 @@ int main() {
 
         switch (*asm_nums) {
 
-            case -1:                                                         // hlt
+            case -0x1:                                                         // hlt
 
                 fprintf(stderr, "hlt encountered, goodbye!\n");
 
@@ -58,13 +63,13 @@ int main() {
                 DtorStack(&my_cpu.stk);
                 return 0;
 
-            case 17:                                                        // push imm_val
+            case 0x11:                                                        // push imm_val
 
                 fprintf(stderr, "Push imm val\n");
                 PushStack(&my_cpu.stk, *++asm_nums);
                 break;
 
-            case 33:                                                        // push from register to stack
+            case 0x21:                                                        // push from register to stack
 
                 fprintf(stderr, "Push from register\n");
                 reg_id = *++asm_nums;
@@ -75,7 +80,7 @@ int main() {
                 reg_id = 0;
                 break;
 
-            case 11:                                                        // pop
+            case 0x0B:                                                        // pop
 
                 fprintf(stderr, "Pop immediate number\n");
                 pop_err = POP_NO_ERR;
@@ -93,7 +98,7 @@ int main() {
                 *regptr = val;
                 break;
 
-            case 3:                                                         // in
+            case 0x3:                                                         // in
 
                 fprintf(stderr, "In: please enter your variable...\n");
                 in_var = 0;
@@ -101,13 +106,13 @@ int main() {
                 PushStack(&my_cpu.stk, in_var);
                 break;
 
-            case 4:                                                         // out
+            case 0x4:                                                         // out
 
                 pop_err = POP_NO_ERR;
                 fprintf(stderr, "Out:   %d\n", PopStack(&my_cpu.stk, &pop_err));
                 break;
 
-            case 5:                                                         // add
+            case 0x5:                                                         // add
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -115,7 +120,7 @@ int main() {
                 PushStack(&my_cpu.stk, val);
                 break;
 
-            case 6:                                                         // sub
+            case 0x6:                                                         // sub
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -124,7 +129,7 @@ int main() {
                 PushStack(&my_cpu.stk, val);
                 break;
 
-            case 7:                                                        // mul
+            case 0x7:                                                        // mul
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -132,7 +137,7 @@ int main() {
                 PushStack(&my_cpu.stk, val);
                 break;
 
-            case 8:                                                         // div
+            case 0x8:                                                         // div
 
                 pop_err = POP_NO_ERR;
                 int denominator = PopStack(&my_cpu.stk, &pop_err);

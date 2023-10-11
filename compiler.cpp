@@ -23,41 +23,78 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
     assert(fin_name);
     assert(fout_name);
 
-    //==================================================== READ TEXT FROM IN FILE AND SPLIT IT INTO LINES
+    //==================== READ TEXT FROM PROGRAM FILE AND SPLIT IT INTO LINES ==========================
     char *        in_buf  = NULL;
     const char ** in_text = NULL; // program text split into lines
-    int n_lines = ReadText(fin_name, &in_text, &in_buf);
 
-    //====================== OPEN COMMANDS-DEFINING FILE AND CREATE STRUCT ARR OF CMD_NAME-CMD_CODE PAIRS
-    // int n_cmds = 0;
-    // usr_cmd * cmds_arr = ParseCmdNames(cmds_file, &n_cmds); // array containing structs {cmd_name , cmd_code}
+    int buf_size = 0;
+
+    int n_lines = ReadText(fin_name, &in_text, &in_buf, &buf_size);
+
+    char *  buf_ready   = (char *)  calloc(buf_size, sizeof(char));
+    char ** text_ready  = (char **) calloc(n_lines, sizeof(char *)); // program text split into lines (preprocessed)
+
+    PreprocessProgram(in_buf, buf_ready, text_ready, n_lines, buf_size);
+
+    long long * prog_code = (long long *) calloc(n_lines, sizeof(long long));
+
+    TranslateProgram(in_text, n_lines, prog_code);
+
+    // TODO also to bin file
+    WriteCodeSegmentTxt(fout_name, prog_code, n_lines);
+
+    // TODO to func
+    free(prog_code);
+    free(in_buf);
+    free(in_text);
+    free(buf_ready);
+    free(text_ready);
+
+    return ASM_OUT_NO_ERR;
+}
+
+int PreprocessProgram (const char * text_buf, char * buf_ready, char ** text_ready, int n_lines, int buf_size) {
+
+    assert(text_buf);
+    assert(buf_ready);
+    assert(text_ready);
+
+    memcpy(buf_ready, text_buf, buf_size);
+
+    text_ready = ParseLines(buf_ready, n_lines);
+
+    // ==================================== COMMENTS ====================================
+    for (int i = 0; i < buf_size; i++)
+        if (buf_ready[i] == ';')
+            buf_ready[i] = 0;
+
+    return 0; // TODO return enum
+}
+
+//* works only with preprocessed program
+int TranslateProgram (const char ** text_ready, int n_lines, long long * prog_code) {
+
+    assert(text_ready);
+    assert(*text_ready);
+    assert(prog_code);
 
     //====================== GET ALL THE COMMANDS DATA FROM ARRAY FROM COMMANDS_H =======================
     int n_cmds = sizeof(CMDS_ARR) / sizeof(*CMDS_ARR);
 
-    //====================== TRANSLATE TEXT COMMANDS TO NUMBERS AND PRINT THEM ==========================
-    char * curr_cmd_name = (char *) calloc(1, MAX_CMD);     // temporary variable supposed to contain keyword (push pop etc)
 
-    long long cmd_val       = 0;                            //
-    int       prev_val      = 0;
-    int       scan_res      = __INT_MAX__;
-
+    long long
+         cmd_val  = 0;
+    int  scan_res = __INT_MAX__;
     int  cmd_id   = 0;
     char reg_letr = 0;
     int  reg_id   = 0;
 
-    char        *curr_cs = (char *)      calloc(MAX_CMD, sizeof(char));      // contains text line
-    long long * code_seg = (long long *) calloc(n_lines, sizeof(long long)); // result array
-
-    FILE * fout = fopen(fout_name, "w");
+    char * curr_cmd_name = (char *) calloc(1, MAX_CMD);            // temporary variable supposed to contain keyword (push pop etc)
+    char * curr_cs       = (char *) calloc(MAX_CMD, sizeof(char)); // contains text line
 
     for (int ip = 0; ip < n_lines; ip++) {
 
-        // ==================================== COMMENTS ====================================
-        strncpy(curr_cs, in_text[ip], MAX_CMD);
-        char *comm_pos = strchr(curr_cs, ';');
-        if (comm_pos)
-            *comm_pos = 0;
+        strncpy(curr_cs, text_ready[ip], MAX_CMD);
 
         // ========================= LOOKING FOR "PUSH RCX" STRINGS =========================
 
@@ -71,7 +108,9 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds); // todo if 0 abort
             cmd_id |= 1 << 5;
         }
-        // ========================= LOOKING FOR "PUSH 513" STRINGS =========================
+
+        // ===================== LOOKING FOR "PUSH 513"-LIKE STRINGS =========================
+
         else if (sscanf(curr_cs, "%s %lld", curr_cmd_name, &cmd_val) == 2) {
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
             cmd_id |= 1 << 4;
@@ -79,35 +118,34 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
         else if (sscanf(curr_cs, "%s", curr_cmd_name) == 1) {
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
         }
-        // ============================== NONE OF THESE MATCH ===============================
-        else {
-            fprintf(stderr, "AssembleMath: invalid input, string: %s\n", in_text[ip]);
 
-            fclose(fout);
+        // ============================== NONE OF THESE MATCH ===============================
+
+        else {
+            fprintf(stderr, "AssembleMath: invalid input, string: \"%s\"\n", text_ready[ip]);
+
             free(curr_cmd_name);
             free(curr_cs);
             return ASM_OUT_ERR;
         }
 
-        code_seg[ip] = (cmd_id << 8) + cmd_val;
+        // ========== PUT CMD_ID AND CMD_VAL IN LONG LONG CELL IN ARRAY CODE_SEG ===========
+
+        prog_code[ip] = (cmd_id << 8) + cmd_val;
 
         cmd_id  = 0;
         cmd_val = 0;
         reg_id  = 0;
 
     }
-    fclose(fout);
 
     free(curr_cmd_name);
-
-    WriteCodeSegment(fout_name, code_seg, n_lines);
-
-    free(code_seg);
+    free(curr_cs);
 
     return ASM_OUT_NO_ERR;
 }
 
-int WriteCodeSegment(const char * fout_name, long long * code_seg, int code_seg_len) {
+int WriteCodeSegmentTxt(const char * fout_name, long long * code_seg, int code_seg_len) {
 
     assert(fout_name);
     assert(code_seg);
@@ -147,7 +185,8 @@ usr_cmd * ParseCmdNames(const char * filename, int * n_cmds) {
     char *        cmd_buf = NULL;
     const char ** text    = NULL;
 
-    int n_lines = ReadText(filename, &text, &cmd_buf);
+    int buf_size = 0;
+    int n_lines = ReadText(filename, &text, &cmd_buf, &buf_size);
 
     usr_cmd curr_cmd = CmdCtor();
 

@@ -4,14 +4,15 @@
 /**
  * @brief read text from file to buf. then put ptrs to str beginnings to text arr
  *
- * @param [in]  file    in-filename
- * @param [out] text    pointer to array of pointers to different parts (new lines) of buffer
- * @param [out] buf     pointer to buffer
+ * @param [in]  file     in-filename
+ * @param [out] text     pointer to array of pointers to different parts (new lines) of buffer
+ * @param [out] buf      pointer to buffer
+ * @param [out] buf_size number of bytes readen to buffer
  *
  * @return number of lines readen
  *
 */
-int ReadText(const char * file, const char ***text, char **buf);
+int ReadText(const char * file, const char ***text, char **buf, int * buf_size);
 
 /**
  * @brief write in file no more then n_lines strings pointers to which are in text
