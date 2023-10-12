@@ -4,9 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "compiler.h"
+#include "asm.h"
 #include "commands.h"
 #include "text_buf.h"
+
+static int EmitCodeArg(long long * prog_code);
 
 int notmain() {
 
@@ -18,24 +20,21 @@ int notmain() {
 /**
  * @brief change commands from fin_name to their codes (from usr_cmd) fout_name. cmd_arr of usr_cmd structs is formed using ParseCmdNames func
 */
-enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const char * cmds_file) {
+enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name, const char * cmds_file) {
 
     assert(fin_name);
     assert(fout_name);
 
     //==================== READ TEXT FROM PROGRAM FILE AND SPLIT IT INTO LINES ==========================
 
-    char *        in_buf  = NULL;
-    const char ** in_text = NULL; // program text split into lines
+    char *  in_buf  = NULL;
+    char ** in_text = NULL; // program text split into lines
 
     int buf_size = 0;
 
     int n_lines = ReadText(fin_name, &in_text, &in_buf, &buf_size);
 
-    char *  buf_ready   = (char *)  calloc(buf_size, sizeof(char));
-    char ** text_ready  = (char **) calloc(n_lines, sizeof(char *)); // program text split into lines (preprocessed)
-
-    PreprocessProgram(in_buf, buf_ready, text_ready, n_lines, buf_size);
+    PreprocessProgram(in_text, n_lines);
 
     long long * prog_code = (long long *) calloc(n_lines, sizeof(long long));
 
@@ -50,33 +49,29 @@ enum ASM_OUT AssembleMath(const char * fin_name, const char * fout_name, const c
     free(prog_code);
     free(in_buf);
     free(in_text);
-    free(buf_ready);
-    free(text_ready);
 
     return ASM_OUT_NO_ERR;
 }
 
-int PreprocessProgram (const char * text_buf, char * buf_ready, char ** text_ready, int n_lines, int buf_size) {
+int PreprocessProgram (char ** text, int n_lines) {
 
-    assert(text_buf);
-    assert(buf_ready);
-    assert(text_ready);
+    assert(text);
 
-    memcpy(buf_ready, text_buf, buf_size);
+    //====================== DEL COMMENTS =======================
+    char * comm_pos = 0;
 
-    text_ready = ParseLines(buf_ready, n_lines);
+    for (int i = 0; i < n_lines; i++) {
 
-    // ==================================== COMMENTS ====================================
+        comm_pos = strchr(text[i], ';');
+        if (comm_pos)
+            *comm_pos = '\0';
+    }
 
-    for (int i = 0; i < buf_size; i++)
-        if (buf_ready[i] == ';')
-            buf_ready[i] = 0;
-
-    return 0; // TODO return enum
+    return 0;
 }
 
 //* works only with preprocessed program
-int TranslateProgram (const char ** text_ready, int n_lines, long long * prog_code) {
+int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
 
     assert(text_ready);
     assert(*text_ready);
@@ -85,7 +80,6 @@ int TranslateProgram (const char ** text_ready, int n_lines, long long * prog_co
     //====================== GET ALL THE COMMANDS DATA FROM ARRAY FROM COMMANDS_H =======================
 
     int n_cmds = sizeof(CMDS_ARR) / sizeof(*CMDS_ARR);
-
 
     long long
          cmd_val  = 0;
@@ -195,17 +189,23 @@ int WriteCodeSegmentBin (const char * fout_name, long long * prog_code, int prog
     assert(fout);
 
     fwrite(prog_code, sizeof(*prog_code), prog_code_lines, fout); // TODO check return val
+
+    fclose(fout);
+
+    return 0; // TODO return enum
 }
 
 /**
  * @brief parse text file where commands are stored and put them in the cmd_arr array usr_cmd structs
+ *
+ * UNUSED FUCTION
 */
 usr_cmd * ParseCmdNames(const char * filename, int * n_cmds) {
 
     assert(filename);
 
-    char *        cmd_buf = NULL;
-    const char ** text    = NULL;
+    char *  cmd_buf = NULL;
+    char ** text    = NULL;
 
     int buf_size = 0;
     int n_lines = ReadText(filename, &text, &cmd_buf, &buf_size);

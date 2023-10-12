@@ -44,7 +44,7 @@ static int CntNewLine(const char *buf);
 
 //----------------------------------------------------
 
-int ReadText(const char * file, const char ***text, char **buf, int * buf_size) {
+int ReadText(const char * file, char ***text, char **buf, int * buf_size) {
 
     assert (file);
     assert (text);
@@ -68,7 +68,7 @@ int ReadText(const char * file, const char ***text, char **buf, int * buf_size) 
     *buf_size = 0;
     int n_lines = ReadBuf(file, buf, buf_size);
 
-    *text = (const char **) ParseLines(*buf, n_lines);
+    *text = (char **) ParseLines(*buf, n_lines);
 
     return n_lines;
 }

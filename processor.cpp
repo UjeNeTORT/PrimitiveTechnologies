@@ -1,19 +1,20 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "compiler.h"
+#include "asm.h"
 #include "processor.h"
 #include "stack.h"
 #include "text_buf.h"
 
-#define TXT_FILE_MODE
+#define TXT_MODE
+#define BIN_MODE
 
 const char * ASM_FILENAME = "ex1_translated.txt";
 const int    CPU_STK_CAPA = 100;
 const int    MAX_CMD_CODE = 8;
 
-int *TokenizeCmdIntArr(const char **asm_lines_raw, size_t n_instructs);
-int *TokenizeCmdBinArr(const char **asm_lines_raw, size_t n_instructs);
+int *TokenizeCmdIntArr(char **asm_lines_raw, size_t n_instructs);
+int *TokenizeCmdBinArr(char **asm_lines_raw, size_t n_instructs);
 int DivideInts(int numerator, int denominator);
 
 int main() {
@@ -31,8 +32,8 @@ int main() {
 
     //===================================================== FORM ARRAY WITH SEPARATE PSEUDO-ASM CODE STRINGS
 
-    char        *buf           = NULL;
-    const char **asm_lines_raw = NULL;
+    char  *buf           = NULL;
+    char **asm_lines_raw = NULL;
 
     int          buf_size = 0;
     int          n_instructs   = ReadText(ASM_FILENAME, &asm_lines_raw, &buf, &buf_size);
@@ -158,7 +159,7 @@ int main() {
     return 0;
 }
 
-int *TokenizeCmdIntArr(const char **asm_lines_raw, size_t n_instructs) {
+int *TokenizeCmdIntArr(char **asm_lines_raw, size_t n_instructs) {
 
     stack asm_codes = {};
     CtorStack(&asm_codes, n_instructs * 3);
