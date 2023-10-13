@@ -44,7 +44,7 @@ static int CntNewLine(const char *buf);
 
 //----------------------------------------------------
 
-int ReadText(const char * file, char ***text, char **buf, int * buf_size) {
+long long ReadText(const char * file, char ***text, char **buf, int * buf_size) {
 
     assert (file);
     assert (text);

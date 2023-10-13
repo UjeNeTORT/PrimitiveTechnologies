@@ -3,6 +3,11 @@
 
 const size_t MAX_CMD = 100;
 
+const long long ARG_IMMED_VAL = 16;
+const long long ARG_REGTR_VAL = 32;
+const long long VAL_MASK      = 0b0000'1111;
+const long long CMD_MASK      = 0b1111'0000;
+
 struct usr_cmd {
 
     const char * name;

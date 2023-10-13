@@ -2,14 +2,17 @@
 #define PROCESSOR_H
 
 #include <stdio.h>
+
 #include "stack.h"
 
-struct CPU {
+const int    SPU_STK_CAPA = 100;
 
-    int   rax;
-    int   rbx;
-    int   rcx;
-    int   rdx;
+struct SPU {
+
+    int rax;
+    int rbx;
+    int rcx;
+    int rdx;
 
     stack stk;
 

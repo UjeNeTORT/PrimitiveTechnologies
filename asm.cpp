@@ -32,7 +32,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name, const 
 
     int buf_size = 0;
 
-    int n_lines = ReadText(fin_name, &in_text, &in_buf, &buf_size);
+    long long n_lines = ReadText(fin_name, &in_text, &in_buf, &buf_size);
 
     PreprocessProgram(in_text, n_lines);
 
@@ -40,10 +40,10 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name, const 
 
     TranslateProgram(in_text, n_lines, prog_code);
 
-    // TODO also to bin file
-    WriteCodeSegmentTxt(fout_name, prog_code, n_lines);
 
-    WriteCodeSegmentBin("translated.bin", prog_code, n_lines); // TODO filename to vars
+    WriteCodeTxt(fout_name, prog_code, n_lines);
+
+    WriteCodeBin("translated.bin", prog_code, n_lines); // TODO filename to vars
 
     // TODO to func
     free(prog_code);
@@ -99,7 +99,7 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
 
         if (sscanf(curr_cs, "%s r%cx", curr_cmd_name, &reg_letr) == 2) {
 
-            reg_id = reg_letr - 'a' + 1;
+            reg_id = reg_letr - 'a' + 1; // todo to func
 
             if (reg_id > 4) {
 
@@ -109,7 +109,7 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
 
             cmd_val = reg_id;
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds); // todo if 0 abort
-            cmd_id |= 1 << 5;
+            cmd_id |= ARG_REGTR_VAL;
         }
 
         // ===================== LOOKING FOR "PUSH 513"-LIKE STRINGS =========================
@@ -117,7 +117,7 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
         else if (sscanf(curr_cs, "%s %lld", curr_cmd_name, &cmd_val) == 2) {
 
             cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
-            cmd_id |= 1 << 4;
+            cmd_id |= ARG_IMMED_VAL;
         }
         else if (sscanf(curr_cs, "%s", curr_cmd_name) == 1) {
 
@@ -136,7 +136,9 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
 
         // ========== PUT CMD_ID AND CMD_VAL IN LONG LONG CELL IN ARRAY CODE_SEG ===========
 
-        prog_code[ip] = (cmd_id << 8) + cmd_val;
+        prog_code[ip] = cmd_id;
+        prog_code[ip] <<= 32;
+        prog_code[ip] |= cmd_val;
 
         cmd_id  = 0;
         cmd_val = 0;
@@ -150,7 +152,7 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
     return ASM_OUT_NO_ERR;
 }
 
-int WriteCodeSegmentTxt(const char * fout_name, long long * prog_code, int code_seg_len) {
+int WriteCodeTxt(const char * fout_name, long long * prog_code, long long prog_code_lines) {
 
     assert(fout_name);
     assert(prog_code);
@@ -161,10 +163,10 @@ int WriteCodeSegmentTxt(const char * fout_name, long long * prog_code, int code_
     int cmd_id  = 0;
     int cmd_val = 0;
 
-    for (int ip = 0; ip < code_seg_len; ip++) {
+    for (int ip = 0; ip < prog_code_lines; ip++) {
 
-        cmd_id  = prog_code[ip] >> 8;
-        cmd_val = prog_code[ip] & 0xFF; // 8 zeros 8 1s
+        cmd_id  = prog_code[ip] >> 32;
+        cmd_val = prog_code[ip] & 0xFFFFFFFF; // 32 zeros 32 1s
 
         if (cmd_val)
             fprintf(fout, "%d %d\n", cmd_id, cmd_val);
@@ -180,13 +182,16 @@ int WriteCodeSegmentTxt(const char * fout_name, long long * prog_code, int code_
     return 0; // todo enum
 }
 
-int WriteCodeSegmentBin (const char * fout_name, long long * prog_code, int prog_code_lines) {
+int WriteCodeBin (const char * fout_name, long long * prog_code, long long prog_code_lines) {
 
     assert(fout_name);
     assert(prog_code);
 
     FILE * fout = fopen(fout_name, "wb");
     assert(fout);
+
+    // put size in the beginning (this can be the beginning of signature-maker function}
+    fwrite(&prog_code_lines, sizeof(*prog_code), 1, fout); // TODO check return val
 
     fwrite(prog_code, sizeof(*prog_code), prog_code_lines, fout); // TODO check return val
 

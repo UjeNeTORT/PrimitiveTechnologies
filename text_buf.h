@@ -12,7 +12,7 @@
  * @return number of lines readen
  *
 */
-int ReadText(const char * file, char ***text, char **buf, int * buf_size);
+long long ReadText(const char * file, char ***text, char **buf, int * buf_size);
 
 /**
  * @brief write in file no more then n_lines strings pointers to which are in text
