@@ -8,7 +8,8 @@
 #include "commands.h"
 #include "text_buf.h"
 
-static int EmitCodeArg(long long * prog_code);
+static int EmitCodeArg (long long * prog_code);
+static int EmitCode    (long long * prog_code);
 
 int notmain() {
 
@@ -91,9 +92,9 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
     char * curr_cmd_name = (char *) calloc(1, MAX_CMD);            // temporary variable supposed to contain keyword (push pop etc)
     char * curr_cs       = (char *) calloc(MAX_CMD, sizeof(char)); // contains text line
 
-    for (int ip = 0; ip < n_lines; ip++) {
+    for (int pos = 0; pos < n_lines; pos++) {
 
-        strncpy(curr_cs, text_ready[ip], MAX_CMD);
+        strncpy(curr_cs, text_ready[pos], MAX_CMD);
 
         // ========================= LOOKING FOR "PUSH RCX" STRINGS =========================
 
@@ -127,7 +128,7 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
         // ============================== NONE OF THESE MATCH ===============================
 
         else {
-            fprintf(stderr, "AssembleMath: invalid input, string: \"%s\"\n", text_ready[ip]);
+            fprintf(stderr, "AssembleMath: invalid input, string: \"%s\"\n", text_ready[pos]);
 
             free(curr_cmd_name);
             free(curr_cs);
@@ -136,9 +137,9 @@ int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
 
         // ========== PUT CMD_ID AND CMD_VAL IN LONG LONG CELL IN ARRAY CODE_SEG ===========
 
-        prog_code[ip] = cmd_id;
-        prog_code[ip] <<= 32;
-        prog_code[ip] |= cmd_val;
+        prog_code[pos] = cmd_id;
+        prog_code[pos] <<= 32;
+        prog_code[pos] |= cmd_val;
 
         cmd_id  = 0;
         cmd_val = 0;
@@ -157,7 +158,7 @@ int WriteCodeTxt(const char * fout_name, long long * prog_code, long long prog_c
     assert(fout_name);
     assert(prog_code);
 
-    FILE * fout = fopen(fout_name, "w");
+    FILE * fout = fopen(fout_name, "wb");
     assert(fout);
 
     int cmd_id  = 0;

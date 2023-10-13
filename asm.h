@@ -18,6 +18,7 @@ enum ASM_OUT {
 };
 
 enum ASM_OUT AssembleMath      (const char * fin_name, const char * fout_name, const char * cmds_file);
+int          DisAssemble       (const char * asm_fname, const char * out_fname);
 usr_cmd     *ParseCmdNames     (const char * filename, int * n_cmds);
 int          ForbiddenCmdCode  (int code);
 usr_cmd      CmdCtor           ();

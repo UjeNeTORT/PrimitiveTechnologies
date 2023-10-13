@@ -9,15 +9,16 @@
 #define TXT_MODE
 #define BIN_MODE
 
-const char * TXT_FILENAME = "ex1_translated.txt";
-const char * BIN_FILENAME = "translated.bin";
-const int    MAX_CMD_CODE = 8;
+const char * TXT_FILENAME    = "ex1_translated.txt";
+const char * BIN_FILENAME    = "translated.bin";
+const char * DISASM_FILENAME = "disasmed.txt";
+const int    MAX_CMD_CODE    = 8;
 
-int RunTxt(const char * in_fname);
-int RunBin(const char * in_fname);
-int *TokenizeCmdIntArr(char **asm_lines_raw, size_t n_instructs);
-int *TokenizeCmdBinArr(char **asm_lines_raw, size_t n_instructs);
-int DivideInts(int numerator, int denominator);
+int RunTxt             (const char * in_fname);
+int RunBin             (const char * in_fname);
+int *TokenizeCmdIntArr (char **asm_lines_raw, size_t n_instructs);
+int *TokenizeCmdBinArr (char **asm_lines_raw, size_t n_instructs);
+int DivideInts         (int numerator, int denominator);
 
 int main() {
 
@@ -25,6 +26,7 @@ int main() {
 
     // RunTxt(TXT_FILENAME);
     RunBin(BIN_FILENAME);
+    DisAssemble(BIN_FILENAME, DISASM_FILENAME);
 
     return 0;
 }
@@ -198,10 +200,6 @@ int RunBin (const char * in_fname) {
 
     size_t readen = 0;
     readen = fread(asm_nums, sizeof(long long), prog_code_size, in_file);
-
-    printf("readen = %d\n"
-           "prog_code_size = %d\n", readen, prog_code_size);
-
     assert(readen == prog_code_size);
 
     fclose(in_file);

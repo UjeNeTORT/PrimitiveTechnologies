@@ -1,0 +1,18 @@
+in
+pop rx
+push rx
+push rx
+mul
+push 4
+in
+in
+mul
+mul
+sub
+out
+hlt
+pop
+add
+div
+pop rx
+push rx
