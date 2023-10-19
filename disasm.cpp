@@ -156,6 +156,8 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
                 break;
                 }
         }
+
+        prog_code++;
     }
 
     fclose(fout);
