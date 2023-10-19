@@ -19,9 +19,6 @@ enum ASM_OUT {
 
 enum ASM_OUT AssembleMath      (const char * fin_name, const char * fout_name, const char * cmds_file);
 int          DisAssemble       (const char * asm_fname, const char * out_fname);
-int          ForbiddenCmdCode  (int code);
-usr_cmd      CmdCtor           ();
-int          GetCmdCode        (const usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size);
 int          PreprocessProgram (char ** text, size_t n_lines);
 int          TranslateProgram  (char * text, size_t n_lines, int * prog_code);
 int          WriteCodeTxt      (const char * fout_name, int * prog_code, size_t n_cmds);

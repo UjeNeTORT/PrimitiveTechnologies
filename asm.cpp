@@ -10,9 +10,7 @@
 #include "text_buf.h"
 
 static int    EmitCodeArg   (int ** prog_code, int code, int val);
-static int    EmitCodeReg   (int ** prog_code, int code, int reg_id);
 static int    EmitCodeNoArg (int ** prog_code, int code);
-static int    DecDigitsIn   (int num);
 static char * TokenizeText  (char ** text_ready, size_t n_lines);
 
 int notmain() {
@@ -243,17 +241,6 @@ int WriteCodeBin (const char * fout_name, int * prog_code, size_t n_cmds) {
     return 0; // TODO return enum
 }
 
-//! dont use
-int GetCmdCode(const usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size) {
-
-    for (int i = 0; i < cmd_arr_size; i++) {
-        if (strcmp(cmd_arr[i].name, cmd_name) == 0)
-            return cmd_arr[i].code;
-    }
-
-    return 0; // todo make return enum
-}
-
 char * TokenizeText (char ** text, size_t n_lines) {
 
     assert(text);
@@ -293,17 +280,6 @@ static int EmitCodeArg (int ** prog_code_ptr, int code, int val) {
     return 0;
 }
 
-static int EmitCodeReg (int ** prog_code_ptr, int code, int reg_id) {
-
-    assert (prog_code_ptr);
-    assert (*prog_code_ptr);
-
-    *(*prog_code_ptr)++ = code;
-    *(*prog_code_ptr)++ = reg_id;
-
-    return 0;
-}
-
 static int EmitCodeNoArg (int ** prog_code_ptr, int code) {
 
     assert (prog_code_ptr);
@@ -312,28 +288,5 @@ static int EmitCodeNoArg (int ** prog_code_ptr, int code) {
     *(*prog_code_ptr)++ = code;
 
     return 0;
-}
-
-//! useless garbage
-static int DecDigitsIn (int num) {
-
-    int res = 0;
-
-    while (num > 0) {
-
-        num /= 10;
-        res++;
-    }
-
-    return res;
-}
-
-//! why would anyone use this
-usr_cmd CmdCtor() {
-
-    char * name = (char *) calloc(1, MAX_CMD);
-    int    code = 0;
-
-    return {name, code};
 }
 
