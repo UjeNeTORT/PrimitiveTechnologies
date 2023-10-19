@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <string.h>
 
 #include "asm.h"
@@ -19,7 +20,7 @@ int main() {
     AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt"); // TODO temporary decision
 
     RunBin(BIN_FILENAME);
-    // DisAssemble(BIN_FILENAME, DISASM_FILENAME);
+    DisAssemble(BIN_FILENAME, DISASM_FILENAME);
 
     return 0;
 }
@@ -45,7 +46,7 @@ int RunBin (const char * in_fname) {
     size_t n_cmds = 0;
     fread(&n_cmds, sizeof(n_cmds), 1, in_file);
 
-    // read byte code array: form and fill asm_nums array
+    // read byte code array: form and fill prog_code array
     int prog_code[n_cmds] = {};
 
     size_t readen = 0;

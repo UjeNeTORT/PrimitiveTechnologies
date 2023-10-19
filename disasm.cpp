@@ -4,20 +4,21 @@
 
 int DisAssemble(const char * asm_fname, const char * out_fname) {
 
+    assert (asm_fname);
+    assert (out_fname);
+
     FILE * asm_file = fopen(asm_fname, "rb");
 
     // read size of the long long byte code array
-    long long prog_code_size = 0;
-    fread(&prog_code_size, sizeof(prog_code_size), 1, asm_file);
+    size_t n_cmds = 0;
+    fread(&n_cmds, sizeof(n_cmds), 1, asm_file);
 
-    // read byte code array: form and fill asm_nums array
-    long long *asm_nums = (long long *) calloc(prog_code_size, sizeof(long long));
-    assert(asm_nums);
-    long long * const asm_nums_init = asm_nums;
+    // read byte code array: form and fill prog_code array
+    int prog_code[n_cmds] = {};
 
     size_t readen = 0;
-    readen = fread(asm_nums, sizeof(long long), prog_code_size, asm_file);
-    assert(readen == prog_code_size);
+    readen = fread(prog_code, sizeof(int), n_cmds, asm_file);
+    assert(readen == n_cmds);
 
     fclose(asm_file);
 
@@ -25,74 +26,109 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
 
     int val     = 0;
     int in_var  = 0;
-    int reg_id  = 0;
-    int *regptr = 0;
 
-    for (int ip = 0; ip < prog_code_size; ip++) {
+    for (int ip = 0; ip < n_cmds; ip++) {
 
-        switch (*asm_nums >> 32) {
+        switch (prog_code[ip]) {
 
             case CMD_HLT:
+                {
 
                 fprintf(fout, "hlt\n");
+
                 break;
+
+                }
 
             case ARG_IMMED_VAL | CMD_PUSH:
+                {
 
-                fprintf(fout, "push %d\n", *asm_nums & VAL_MASK);
+                fprintf(fout, "push %d\n", prog_code[++ip]);
+
                 break;
+                }
 
             case ARG_REGTR_VAL | CMD_PUSH:
+                {
 
-                fprintf(fout, "push r%cx\n", 'a' + *asm_nums & VAL_MASK - 1);
+                fprintf(fout, "push %d\n", prog_code[++ip]);
                 break;
 
+                }
+
             case CMD_POP:
+                {
 
                 fprintf(fout, "pop\n");
                 break;
 
-            case ARG_REGTR_VAL | CMD_POP:
+                }
 
-                fprintf(fout, "pop r%cx\n", 'a' + *asm_nums & VAL_MASK - 1);
+            case ARG_REGTR_VAL | CMD_POP:
+                {
+
+                fprintf(fout, "pop %d\n", prog_code[++ip]);
                 break;
 
+                }
+
             case CMD_IN:
+                {
 
                 fprintf(fout, "in\n");
                 break;
 
+                }
+
             case CMD_OUT:
+                {
 
                 fprintf(fout, "out\n");
                 break;
 
+                }
+
             case CMD_ADD:
+                {
 
                 fprintf(fout, "add\n");
                 break;
 
+                }
+
             case CMD_SUB:
+                {
 
                 fprintf(fout, "sub\n");
                 break;
 
+                }
+
             case CMD_MUL:
+                {
 
                 fprintf(fout, "mul\n");
                 break;
 
+                }
+
             case CMD_DIV:
+                {
 
                 fprintf(fout, "div\n");
                 break;
-        }
 
-        asm_nums++;
+                }
+
+            default:
+                {
+                fprintf(fout, "DISASM CMD NOT FOUND (CODE = %d)\n", prog_code[ip]);
+                break;
+                }
+        }
     }
 
     fclose(fout);
-    free(asm_nums_init);
 
     return 0;
 }
