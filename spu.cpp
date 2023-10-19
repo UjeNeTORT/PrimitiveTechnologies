@@ -17,7 +17,6 @@ int main() {
 
     AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt"); // TODO temporary decision
 
-    // RunTxt(TXT_FILENAME); // maybe i dont even need this
     RunBin(BIN_FILENAME);
     // DisAssemble(BIN_FILENAME, DISASM_FILENAME);
 
