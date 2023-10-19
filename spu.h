@@ -5,14 +5,12 @@
 
 #include "stack.h"
 
-const int    SPU_STK_CAPA = 100;
+const int SPU_STK_CAPA = 100;
+const int SPU_REGS_NUM = 4;
 
 struct SPU {
 
-    int rax;
-    int rbx;
-    int rcx;
-    int rdx;
+    int regs[SPU_REGS_NUM];
 
     stack stk;
 

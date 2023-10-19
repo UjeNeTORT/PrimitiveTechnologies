@@ -5,11 +5,15 @@
 #include <string.h>
 
 #include "asm.h"
+#include "spu.h"
 #include "commands.h"
 #include "text_buf.h"
 
-static int EmitCodeArg (long long * prog_code);
-static int EmitCode    (long long * prog_code);
+static int    EmitCodeArg   (int ** prog_code, int code, int val);
+static int    EmitCodeReg   (int ** prog_code, int code, int reg_id);
+static int    EmitCodeNoArg (int ** prog_code, int code);
+static int    DecDigitsIn   (int num);
+static char * TokenizeText  (char ** text_ready, size_t n_lines);
 
 int notmain() {
 
@@ -31,37 +35,39 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name, const 
     char *  in_buf  = NULL;
     char ** in_text = NULL; // program text split into lines
 
-    int buf_size = 0;
+    size_t n_lines = ReadText(fin_name, &in_text, &in_buf);
 
-    long long n_lines = ReadText(fin_name, &in_text, &in_buf, &buf_size);
-
+    //==================== PREPROCESS EACH LINE OF THE TEXT ==========================
     PreprocessProgram(in_text, n_lines);
 
-    long long * prog_code = (long long *) calloc(n_lines, sizeof(long long));
+    //============= PUT TEXT IN ARRAY OF WORDS SEPEARATED BY BLANKS ==================
+    char * text_tokenized = TokenizeText(in_text, n_lines);
 
-    TranslateProgram(in_text, n_lines, prog_code);
+    int * prog_code = (int *) calloc(n_lines * CMDS_PER_LINE, sizeof(size_t));
 
+    int n_cmds = TranslateProgram(text_tokenized, n_lines, prog_code);
 
-    WriteCodeTxt(fout_name, prog_code, n_lines);
+    // WriteCodeTxt(fout_name, prog_code, n_cmds);
 
-    WriteCodeBin("translated.bin", prog_code, n_lines); // TODO filename to vars
+    WriteCodeBin("translated.bin", prog_code, n_cmds); // TODO filename to vars
 
     // TODO to func
     free(prog_code);
     free(in_buf);
     free(in_text);
+    free(text_tokenized); // strange thing that we free memory not from the part of code where it was allocated
 
     return ASM_OUT_NO_ERR;
 }
 
-int PreprocessProgram (char ** text, int n_lines) {
+int PreprocessProgram (char ** text, size_t n_lines) {
 
     assert(text);
 
     //====================== DEL COMMENTS =======================
     char * comm_pos = 0;
 
-    for (int i = 0; i < n_lines; i++) {
+    for (size_t i = 0; i < n_lines; i++) {
 
         comm_pos = strchr(text[i], ';');
         if (comm_pos)
@@ -72,88 +78,124 @@ int PreprocessProgram (char ** text, int n_lines) {
 }
 
 //* works only with preprocessed program
-int TranslateProgram (char ** text_ready, int n_lines, long long * prog_code) {
+//* any error inside translator leads to abort of assembly program with error message (no return codes due to no need)
+int TranslateProgram (char * text, size_t n_lines, int * prog_code) {
 
-    assert(text_ready);
-    assert(*text_ready);
+    assert(text);
+    assert(*text);
     assert(prog_code);
 
-    //====================== GET ALL THE COMMANDS DATA FROM ARRAY FROM COMMANDS_H =======================
+    char cmd[MAX_CMD] = "";
+    int n_cmds = 0;
 
-    int n_cmds = sizeof(CMDS_ARR) / sizeof(*CMDS_ARR);
+    char reg_id = 0;
+    int  arg    = 0;
+    int  symbs  = 0;
 
-    long long
-         cmd_val  = 0;
-    int  scan_res = __INT_MAX__;
-    int  cmd_id   = 0;
-    char reg_letr = 0;
-    int  reg_id   = 0;
+    while (*text) {
 
-    char * curr_cmd_name = (char *) calloc(1, MAX_CMD);            // temporary variable supposed to contain keyword (push pop etc)
-    char * curr_cs       = (char *) calloc(MAX_CMD, sizeof(char)); // contains text line
+        if (sscanf(text, "%s %n", cmd, &symbs) <= 0)
+            break;
 
-    for (int pos = 0; pos < n_lines; pos++) {
+        text += symbs;
 
-        strncpy(curr_cs, text_ready[pos], MAX_CMD);
+        if (strcmp(cmd, "push") == 0) {
 
-        // ========================= LOOKING FOR "PUSH RCX" STRINGS =========================
+            if (sscanf(text, "r%cx %n", &reg_id, &symbs) == 1) {
 
-        if (sscanf(curr_cs, "%s r%cx", curr_cmd_name, &reg_letr) == 2) {
+                text += symbs; // "rax" len of string (assume all registers consist of )
+                n_cmds++;
 
-            reg_id = reg_letr - 'a' + 1; // todo to func
+                reg_id -= 'a';
+                if (reg_id < 0 || reg_id > SPU_REGS_NUM - 1)       // TODO to function calculation of register id
+                    fprintf(stderr, "Register %d is incorrect!\n", reg_id);
 
-            if (reg_id > 4) {
+                EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_PUSH, reg_id); // TODO EmitCodeReg in order not to waste 4 bytes for reg index which is no more than 256
+            }
+            else if (sscanf(text, "%d %n", &arg, &symbs) == 1) {
 
-                fprintf(stderr, "only 4 registers allowed! (%d)\n", reg_id);
+                text += symbs; // "123" -> skipping 3 bytes //* here was DecDigitsIn func
+                n_cmds++;
+
+                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_PUSH, arg);
+            }
+            else {
+
+                fprintf(stderr, "SyntaxError! No argument after \"push\"\n");
                 abort();
             }
-
-            cmd_val = reg_id;
-            cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds); // todo if 0 abort
-            cmd_id |= ARG_REGTR_VAL;
         }
+        else if (strcmp(cmd, "pop") == 0) {
 
-        // ===================== LOOKING FOR "PUSH 513"-LIKE STRINGS =========================
+            if (sscanf(text, "r%cx %n", &reg_id, &symbs) == 1) {
 
-        else if (sscanf(curr_cs, "%s %lld", curr_cmd_name, &cmd_val) == 2) {
+                text += symbs; // "rax" len of string (assume all registers consist of )
+                n_cmds++;
 
-            cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
-            cmd_id |= ARG_IMMED_VAL;
+                reg_id -= 'a';
+                if (reg_id < 0 || reg_id > SPU_REGS_NUM - 1)       // TODO to function calculation of register id
+                    fprintf(stderr, "Register %d is incorrect!\n", reg_id);
+
+                EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_POP, reg_id); // TODO EmitCodeReg in order not to waste 4 bytes for reg index which is no more than 256
+
+            }
+            else if (sscanf(text, "%d %n", &arg, &symbs) == 1) { // useless as there are no immed val args for pop
+
+                text += symbs; // "123" -> skipping 3 bytes
+
+                n_cmds++;
+
+                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_POP, arg);
+            }
+            else {
+
+                EmitCodeNoArg(&prog_code, CMD_POP);
+            }
         }
-        else if (sscanf(curr_cs, "%s", curr_cmd_name) == 1) {
+        else if (strcmp(cmd, "hlt") == 0) {
 
-            cmd_id |= GetCmdCode(CMDS_ARR, curr_cmd_name, n_cmds);
+            EmitCodeNoArg(&prog_code, CMD_HLT);
         }
+        else if (strcmp(cmd, "in") == 0) {
 
-        // ============================== NONE OF THESE MATCH ===============================
+            EmitCodeNoArg(&prog_code, CMD_IN);
+        }
+        else if (strcmp(cmd, "out") == 0) {
 
+            EmitCodeNoArg(&prog_code, CMD_OUT);
+        }
+        else if (strcmp(cmd, "add") == 0) {
+
+            EmitCodeNoArg(&prog_code, CMD_ADD);
+        }
+        else if (strcmp(cmd, "sub") == 0) {
+
+            EmitCodeNoArg(&prog_code, CMD_SUB);
+        }
+        else if (strcmp(cmd, "mul") == 0) {
+
+            EmitCodeNoArg(&prog_code, CMD_MUL);
+        }
+        else if (strcmp(cmd, "div") == 0) {
+
+            EmitCodeNoArg(&prog_code, CMD_DIV);
+        }
         else {
-            fprintf(stderr, "AssembleMath: invalid input, string: \"%s\"\n", text_ready[pos]);
 
-            free(curr_cmd_name);
-            free(curr_cs);
-            return ASM_OUT_ERR;
+            fprintf(stderr, "Syntax error! No command \"%s\" found. Bye bye looser!\n", cmd);
+            abort();
         }
 
-        // ========== PUT CMD_ID AND CMD_VAL IN LONG LONG CELL IN ARRAY CODE_SEG ===========
+        memset(cmd, 0, MAX_CMD); // clean memory in cmd // todo catch errors
 
-        prog_code[pos] = cmd_id;
-        prog_code[pos] <<= 32;
-        prog_code[pos] |= cmd_val;
-
-        cmd_id  = 0;
-        cmd_val = 0;
-        reg_id  = 0;
-
+        n_cmds++;
     }
 
-    free(curr_cmd_name);
-    free(curr_cs);
-
-    return ASM_OUT_NO_ERR;
+    return n_cmds;
 }
 
-int WriteCodeTxt(const char * fout_name, long long * prog_code, long long prog_code_lines) {
+//! broken until fix
+int WriteCodeTxt(const char * fout_name, char * prog_code, size_t n_cmds) {
 
     assert(fout_name);
     assert(prog_code);
@@ -164,7 +206,7 @@ int WriteCodeTxt(const char * fout_name, long long * prog_code, long long prog_c
     int cmd_id  = 0;
     int cmd_val = 0;
 
-    for (int ip = 0; ip < prog_code_lines; ip++) {
+    for (int ip = 0; ip < n_cmds; ip++) {
 
         cmd_id  = prog_code[ip] >> 32;
         cmd_val = prog_code[ip] & 0xFFFFFFFF; // 32 zeros 32 1s
@@ -183,7 +225,7 @@ int WriteCodeTxt(const char * fout_name, long long * prog_code, long long prog_c
     return 0; // todo enum
 }
 
-int WriteCodeBin (const char * fout_name, long long * prog_code, long long prog_code_lines) {
+int WriteCodeBin (const char * fout_name, int * prog_code, size_t n_cmds) {
 
     assert(fout_name);
     assert(prog_code);
@@ -192,106 +234,16 @@ int WriteCodeBin (const char * fout_name, long long * prog_code, long long prog_
     assert(fout);
 
     // put size in the beginning (this can be the beginning of signature-maker function}
-    fwrite(&prog_code_lines, sizeof(*prog_code), 1, fout); // TODO check return val
+    fwrite(&n_cmds, sizeof(size_t), 1, fout); // TODO check return val
 
-    fwrite(prog_code, sizeof(*prog_code), prog_code_lines, fout); // TODO check return val
+    fwrite(prog_code, sizeof(*prog_code), n_cmds, fout); // TODO check return val
 
     fclose(fout);
 
     return 0; // TODO return enum
 }
 
-/**
- * @brief parse text file where commands are stored and put them in the cmd_arr array usr_cmd structs
- *
- * UNUSED FUCTION
-*/
-usr_cmd * ParseCmdNames(const char * filename, int * n_cmds) {
-
-    assert(filename);
-
-    char *  cmd_buf = NULL;
-    char ** text    = NULL;
-
-    int buf_size = 0;
-    int n_lines = ReadText(filename, &text, &cmd_buf, &buf_size);
-
-    usr_cmd curr_cmd = CmdCtor();
-
-    usr_cmd * cmd_arr = (usr_cmd *) calloc(n_lines, sizeof(usr_cmd));
-    if (!cmd_arr) {
-
-        fprintf(stderr, "ParseCommands: CANT ALLOCATE MEMORY FOR COMMANDS ARRAY\n");
-        return NULL;
-    }
-
-    size_t  cmd_cnt  = 0;
-    int scan_res     = __INT_MAX__;
-
-    for (int nline = 0; nline < n_lines; nline++) {
-
-        scan_res = sscanf(text[nline], "%s %d", curr_cmd.name, &curr_cmd.code);
-
-        int prev_cmd_code = 0;
-
-        if (scan_res == 2) {
-
-            prev_cmd_code = curr_cmd.code;
-
-            if (!isalpha(curr_cmd.name[0]) && curr_cmd.name[0] != '_') {
-
-                fprintf(stderr, "ParseCommands: invalid command name %s\n", curr_cmd.name);
-                abort();
-                // todo load default config file
-            }
-            else if (ForbiddenCmdCode(curr_cmd.code)) {
-
-                fprintf(stderr, "ParseCommands: invalid command code %d\n", curr_cmd.code);
-                abort();
-                // todo load default config file
-            }
-            else {
-
-                cmd_arr[cmd_cnt++] = curr_cmd;
-            }
-        }
-
-        else if (scan_res == 1) {
-
-            if (!isalpha(curr_cmd.name[0]) && curr_cmd.name[0] != '_') {
-
-                fprintf(stderr, "ParseCommands: invalid command name %s\n", curr_cmd.name);
-                abort();
-                // todo load default config file
-            }
-            else {
-
-                curr_cmd.code      = ++prev_cmd_code;
-                cmd_arr[cmd_cnt++] =   curr_cmd;
-            }
-
-        }
-        else if (scan_res == 0) {
-
-            ;
-        }
-        else if (scan_res == EOF) {
-
-            break;
-        }
-        else {
-
-            fprintf(stderr, "ParseCommands: unknown error occured\n");
-            abort();
-        }
-
-        curr_cmd = CmdCtor();
-    }
-
-    *n_cmds = cmd_cnt;
-    return cmd_arr;
-}
-
+//! dont use
 int GetCmdCode(const usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size) {
 
     for (int i = 0; i < cmd_arr_size; i++) {
@@ -299,14 +251,84 @@ int GetCmdCode(const usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size)
             return cmd_arr[i].code;
     }
 
+    return 0; // todo make return enum
+}
+
+char * TokenizeText (char ** text, size_t n_lines) {
+
+    assert(text);
+
+    char * text_tokenized = (char *) calloc (n_lines * CMDS_PER_LINE * MAX_CMD, sizeof(char));
+    char * text_tokenized_init = text_tokenized;
+
+    size_t line_size = 0;
+
+    for (size_t line = 0; line < n_lines; line++) {
+
+        line_size = strlen(text[line]);
+
+        strncpy(text_tokenized, text[line], line_size);
+
+        text_tokenized += line_size;
+        *text_tokenized = ' ';
+        text_tokenized++;
+
+    }
+    *text_tokenized++ = 0;
+
+    // free(text_tokenized); // todo free part we didnt use
+    return text_tokenized_init;
+}
+
+static int EmitCodeArg (int ** prog_code_ptr, int code, int val) {
+
+    assert (prog_code_ptr);
+    assert (*prog_code_ptr);
+
+    *(*prog_code_ptr)++ = code;
+
+    *(*prog_code_ptr)++ = val;
+
+
     return 0;
 }
 
-int ForbiddenCmdCode(int code) {
-    // todo
+static int EmitCodeReg (int ** prog_code_ptr, int code, int reg_id) {
+
+    assert (prog_code_ptr);
+    assert (*prog_code_ptr);
+
+    *(*prog_code_ptr)++ = code;
+    *(*prog_code_ptr)++ = reg_id;
+
     return 0;
 }
 
+static int EmitCodeNoArg (int ** prog_code_ptr, int code) {
+
+    assert (prog_code_ptr);
+    assert (*prog_code_ptr);
+
+    *(*prog_code_ptr)++ = code;
+
+    return 0;
+}
+
+//! useless garbage
+static int DecDigitsIn (int num) {
+
+    int res = 0;
+
+    while (num > 0) {
+
+        num /= 10;
+        res++;
+    }
+
+    return res;
+}
+
+//! why would anyone use this
 usr_cmd CmdCtor() {
 
     char * name = (char *) calloc(1, MAX_CMD);

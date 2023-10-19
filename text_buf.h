@@ -7,12 +7,11 @@
  * @param [in]  file     in-filename
  * @param [out] text     pointer to array of pointers to different parts (new lines) of buffer
  * @param [out] buf      pointer to buffer
- * @param [out] buf_size number of bytes readen to buffer
  *
  * @return number of lines readen
  *
 */
-long long ReadText(const char * file, char ***text, char **buf, int * buf_size);
+size_t ReadText(const char * file, char ***text, char **buf);
 
 /**
  * @brief write in file no more then n_lines strings pointers to which are in text

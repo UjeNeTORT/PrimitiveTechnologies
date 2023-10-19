@@ -12,11 +12,10 @@
  *
  * @param [in]  file     filename
  * @param [out] buf      buffer pointer
- * @param [out] buf_size number of bytes readen to buffer
  *
  * @return number of lines in file
 */
-static int ReadBuf(const char * const file, char **buf, int * buf_size);
+static int ReadBuf(const char * const file, char **buf);
 
 //----------------------------------------------------
 /**
@@ -44,7 +43,7 @@ static int CntNewLine(const char *buf);
 
 //----------------------------------------------------
 
-long long ReadText(const char * file, char ***text, char **buf, int * buf_size) {
+size_t ReadText(const char * file, char ***text, char **buf) {
 
     assert (file);
     assert (text);
@@ -65,8 +64,7 @@ long long ReadText(const char * file, char ***text, char **buf, int * buf_size) 
         // return INT_MAX;
     }
 
-    *buf_size = 0;
-    int n_lines = ReadBuf(file, buf, buf_size);
+    int n_lines = ReadBuf(file, buf);
 
     *text = (char **) ParseLines(*buf, n_lines);
 
@@ -75,7 +73,7 @@ long long ReadText(const char * file, char ***text, char **buf, int * buf_size) 
 
 //----------------------------------------------------
 
-int ReadBuf(const char * const file, char **buf, int * buf_size) {
+int ReadBuf(const char * const file, char **buf) {
     assert (file);
     assert (buf);
 
@@ -93,9 +91,7 @@ int ReadBuf(const char * const file, char **buf, int * buf_size) {
 
     int f_size = GetFileSize(fin);
 
-    *buf_size = f_size + 1;
-
-    *buf = (char *) calloc(*buf_size, sizeof(char));
+    *buf = (char *) calloc(f_size + 1, sizeof(char));
 
     fread(*buf, sizeof(char), f_size, fin);
 

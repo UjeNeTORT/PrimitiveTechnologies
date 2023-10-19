@@ -9,7 +9,7 @@
 #include "commands.h"
 
 const size_t MAX_LINES = 100;
-const size_t LINE_SIZE = 100;
+const size_t CMDS_PER_LINE = 2;
 const char * const DFLT_CMDS_FILE = "user_commands.txt";
 
 enum ASM_OUT {
@@ -19,13 +19,12 @@ enum ASM_OUT {
 
 enum ASM_OUT AssembleMath      (const char * fin_name, const char * fout_name, const char * cmds_file);
 int          DisAssemble       (const char * asm_fname, const char * out_fname);
-usr_cmd     *ParseCmdNames     (const char * filename, int * n_cmds);
 int          ForbiddenCmdCode  (int code);
 usr_cmd      CmdCtor           ();
 int          GetCmdCode        (const usr_cmd * cmd_arr, const char * cmd_name, int cmd_arr_size);
-int          PreprocessProgram (char ** text, int n_lines);
-int          TranslateProgram  (char ** text_ready, int n_lines, long long * prog_code);
-int          WriteCodeTxt      (const char * fout_name, long long * prog_code, long long prog_code_lines);
-int          WriteCodeBin      (const char * fout_name, long long * prog_code, long long prog_code_lines);
+int          PreprocessProgram (char ** text, size_t n_lines);
+int          TranslateProgram  (char * text, size_t n_lines, int * prog_code);
+int          WriteCodeTxt      (const char * fout_name, int * prog_code, size_t n_cmds);
+int          WriteCodeBin      (const char * fout_name, int * prog_code, size_t n_cmds);
 
 #endif // COMPILER_H
