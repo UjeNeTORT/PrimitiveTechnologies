@@ -5,15 +5,14 @@
 #include <string.h>
 
 #include "asm.h"
-#include "spu.h"
 #include "commands.h"
-#include "text_buf.h"
+#include "./text_processing_lib/text_buf.h"
 
 static int    EmitCodeArg   (int ** prog_code, int code, int val);
 static int    EmitCodeNoArg (int ** prog_code, int code);
 static char * TokenizeText  (char ** text_ready, size_t n_lines);
 
-int notmain() {
+int main() {
 
     AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt");
 
@@ -43,7 +42,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name, const 
 
     int * prog_code = (int *) calloc(n_lines * CMDS_PER_LINE, sizeof(size_t));
 
-    int n_cmds = TranslateProgram(text_tokenized, n_lines, prog_code);
+    int n_cmds = TranslateProgram(text_tokenized, prog_code);
 
     WriteCodeTxt(fout_name, prog_code, n_cmds);
 
@@ -77,7 +76,7 @@ int PreprocessProgram (char ** text, size_t n_lines) {
 
 //* works only with preprocessed program
 //* any error inside translator leads to abort of assembly program with error message (no return codes due to no need)
-int TranslateProgram (char * text, size_t n_lines, int * prog_code) {
+int TranslateProgram (char * text, int * prog_code) {
 
     assert(text);
     assert(*text);
@@ -105,7 +104,7 @@ int TranslateProgram (char * text, size_t n_lines, int * prog_code) {
                 n_cmds++;
 
                 reg_id -= 'a';
-                if (reg_id < 0 || reg_id > SPU_REGS_NUM - 1)       // TODO to function calculation of register id
+                if (reg_id < 0 || reg_id > 4 - 1)       // TODO to function calculation of register id
                     fprintf(stderr, "Register %d is incorrect!\n", reg_id);
 
                 EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_PUSH, reg_id); // TODO EmitCodeReg in order not to waste 4 bytes for reg index which is no more than 256
@@ -131,7 +130,7 @@ int TranslateProgram (char * text, size_t n_lines, int * prog_code) {
                 n_cmds++;
 
                 reg_id -= 'a';
-                if (reg_id < 0 || reg_id > SPU_REGS_NUM - 1)       // TODO to function calculation of register id
+                if (reg_id < 0 || reg_id > 4 - 1)       // TODO to function calculation of register id
                     fprintf(stderr, "Register %d is incorrect!\n", reg_id);
 
                 EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_POP, reg_id); // TODO EmitCodeReg in order not to waste 4 bytes for reg index which is no more than 256
@@ -201,7 +200,6 @@ int WriteCodeTxt(const char * fout_name, int * prog_code, size_t n_cmds) {
     assert(fout);
 
     int cmd_id  = 0;
-    int cmd_val = 0;
 
     for (int ip = 0; ip < n_cmds; ip++) {
 

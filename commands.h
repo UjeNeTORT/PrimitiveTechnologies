@@ -1,6 +1,8 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
+#include <stdio.h>
+
 const size_t MAX_CMD = 100;
 
 const int ARG_IMMED_VAL = 0b0001'0000;

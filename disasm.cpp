@@ -1,7 +1,15 @@
 #include <stdio.h>
 
 #include "asm.h"
+const char * BIN_FILENAME    = "translated.bin";
+const char * DISASM_FILENAME = "disasmed.txt";
 
+int main() {
+
+    DisAssemble(BIN_FILENAME, DISASM_FILENAME);
+
+    return 0;
+}
 int DisAssemble(const char * asm_fname, const char * out_fname) {
 
     assert (asm_fname);
@@ -14,7 +22,9 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
     fread(&n_cmds, sizeof(n_cmds), 1, asm_file);
 
     // read byte code array: form and fill prog_code array
-    int prog_code[n_cmds] = {};
+    int * prog_code = (int *) calloc(n_cmds, sizeof(int));
+    assert(prog_code);
+    int * const prog_code_init = prog_code;
 
     size_t readen = 0;
     readen = fread(prog_code, sizeof(int), n_cmds, asm_file);
@@ -27,9 +37,9 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
     int val     = 0;
     int in_var  = 0;
 
-    for (int ip = 0; ip < n_cmds; ip++) {
+    for (size_t ip = 0; ip < n_cmds; ip++) {
 
-        switch (prog_code[ip]) {
+        switch (*prog_code) {
 
             case CMD_HLT:
                 {
@@ -43,7 +53,11 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
             case ARG_IMMED_VAL | CMD_PUSH:
                 {
 
-                fprintf(fout, "push %d\n", prog_code[++ip]);
+                prog_code++;
+                ip++;
+                val = *prog_code;
+
+                fprintf(fout, "push %d\n", val);
 
                 break;
                 }
@@ -51,7 +65,11 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
             case ARG_REGTR_VAL | CMD_PUSH:
                 {
 
-                fprintf(fout, "push %d\n", prog_code[++ip]);
+                prog_code++;
+                ip++;
+                val = *prog_code;
+
+                fprintf(fout, "push %d\n", val);
                 break;
 
                 }
@@ -67,7 +85,10 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
             case ARG_REGTR_VAL | CMD_POP:
                 {
 
-                fprintf(fout, "pop %d\n", prog_code[++ip]);
+                prog_code++;
+                ip++;
+                val = *prog_code;
+                fprintf(fout, "pop %d\n", val);
                 break;
 
                 }
@@ -122,13 +143,14 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
 
             default:
                 {
-                fprintf(fout, "DISASM CMD NOT FOUND (CODE = %d)\n", prog_code[ip]);
+                fprintf(fout, "DISASM CMD NOT FOUND (CODE = %d)\n", *prog_code);
                 break;
                 }
         }
     }
 
     fclose(fout);
+    free(prog_code_init);
 
     return 0;
 }

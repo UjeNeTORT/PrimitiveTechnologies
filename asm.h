@@ -20,7 +20,7 @@ enum ASM_OUT {
 enum ASM_OUT AssembleMath      (const char * fin_name, const char * fout_name, const char * cmds_file);
 int          DisAssemble       (const char * asm_fname, const char * out_fname);
 int          PreprocessProgram (char ** text, size_t n_lines);
-int          TranslateProgram  (char * text, size_t n_lines, int * prog_code);
+int          TranslateProgram  (char * text, int * prog_code);
 int          WriteCodeTxt      (const char * fout_name, int * prog_code, size_t n_cmds);
 int          WriteCodeBin      (const char * fout_name, int * prog_code, size_t n_cmds);
 

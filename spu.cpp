@@ -1,15 +1,15 @@
+#include <assert.h>
 #include <stdio.h>
-#include <iostream>
+#include <stdlib.h>
 #include <string.h>
 
-#include "asm.h"
+#include "commands.h"
 #include "spu.h"
-#include "stack.h"
-#include "text_buf.h"
+#include "./stacklib/stack.h"
+#include "./text_processing_lib/text_buf.h"
 
-const char * BIN_FILENAME    = "translated.bin";
-const char * DISASM_FILENAME = "disasmed.txt";
-const int    MAX_CMD_CODE    = 8;
+const char * BIN_FILENAME = "translated.bin";
+const int    MAX_CMD_CODE = 8;
 
 int RunBin     (const char * in_fname);
 
@@ -17,10 +17,7 @@ int DivideInts (int numerator, int denominator);
 
 int main() {
 
-    AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt"); // TODO temporary decision
-
     RunBin(BIN_FILENAME);
-    DisAssemble(BIN_FILENAME, DISASM_FILENAME);
 
     return 0;
 }
@@ -47,7 +44,9 @@ int RunBin (const char * in_fname) {
     fread(&n_cmds, sizeof(n_cmds), 1, in_file);
 
     // read byte code array: form and fill prog_code array
-    int prog_code[n_cmds] = {};
+    int * prog_code = (int *) calloc(n_cmds, sizeof(int));
+    assert(prog_code);
+    int * const prog_code_init = prog_code;
 
     size_t readen = 0;
     readen = fread(prog_code, sizeof(int), n_cmds, in_file);
@@ -59,15 +58,16 @@ int RunBin (const char * in_fname) {
     int val     = 0;
     int in_var  = 0;
 
-    for (int ip = 0; ip < n_cmds; ip++) {
+    for (size_t ip = 0; ip < n_cmds; ip++) {
 
-        switch (prog_code[ip]) {
+        switch (*prog_code) {
 
             case CMD_HLT:
                 {
 
                 fprintf(stderr, "hlt encountered, goodbye!\n");
 
+                free(prog_code_init);
                 DtorStack(&my_spu.stk);
 
                 return 0;
@@ -79,8 +79,9 @@ int RunBin (const char * in_fname) {
 
                 fprintf(stderr, "Push imm val\n");
 
+                prog_code++;
                 ip++;
-                val = prog_code[ip];
+                val = *prog_code;
 
                 PushStack(&my_spu.stk, val);
 
@@ -92,8 +93,9 @@ int RunBin (const char * in_fname) {
 
                 fprintf(stderr, "Push from register\n");
 
+                prog_code++;
                 ip++;
-                val = prog_code[ip];
+                val = *prog_code;
 
                 PushStack(&my_spu.stk, my_spu.regs[val]);
 
@@ -121,8 +123,9 @@ int RunBin (const char * in_fname) {
                 fprintf(stderr, "Pop to register\n");
                 pop_err = POP_NO_ERR;
 
+                prog_code++;
                 ip++;
-                val = prog_code[ip];
+                val = *prog_code;
 
                 my_spu.regs[val] = PopStack(&my_spu.stk, &pop_err);
 
@@ -220,48 +223,14 @@ int RunBin (const char * in_fname) {
         val     = 0;
         in_var  = 0;
 
+        prog_code++;
     }
 
+    free(prog_code_init);
     DtorStack(&my_spu.stk);
 
     return 0;
 }
-
-
-int *TokenizeCmdIntArr (char **asm_lines_raw, size_t n_instructs) {
-
-    stack asm_codes = {};
-    CtorStack(&asm_codes, n_instructs * 3);
-
-    int n_words = 0; // i mean integer numbers (cmd codes or cmd args)
-
-    char * asm_line_cpy = (char *) calloc(MAX_CMD_CODE, 1);
-
-    for (int i = 0; i < n_instructs; i++) {
-
-        strcpy(asm_line_cpy, asm_lines_raw[i]);
-
-        char * token = strtok(asm_line_cpy, " ");
-
-        while(token != NULL) {
-            n_words++;
-            PushStack(&asm_codes, atoi(token));
-
-            token = strtok(NULL, " ");
-        }
-    }
-    free(asm_line_cpy);
-
-    int *asm_lines = (int *) calloc(n_words, sizeof(int));
-
-    for (int i = 0; i < n_words; i++) {
-        asm_lines[i] = asm_codes.data.buf[i];
-    }
-
-    DtorStack(&asm_codes);
-
-    return asm_lines;
- }
 
  int DivideInts(int numerator, int denominator) {
     return (int) numerator / denominator;

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "stack.h"
+#include "./stacklib/stack.h"
 
 const int SPU_STK_CAPA = 100;
 const int SPU_REGS_NUM = 4;

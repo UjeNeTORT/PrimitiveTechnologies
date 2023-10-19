@@ -1,7 +1,7 @@
 in
-pop rx
-push rx
-push rx
+pop 0
+push 0
+push 0
 mul
 push 4
 in
@@ -14,5 +14,5 @@ hlt
 pop
 add
 div
-pop rx
-push rx
+pop 0
+push 0
