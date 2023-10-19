@@ -10,8 +10,9 @@ const char * BIN_FILENAME    = "translated.bin";
 const char * DISASM_FILENAME = "disasmed.txt";
 const int    MAX_CMD_CODE    = 8;
 
-int RunBin             (const char * in_fname);
-int DivideInts         (int numerator, int denominator);
+int RunBin     (const char * in_fname);
+
+int DivideInts (int numerator, int denominator);
 
 int main() {
 
@@ -23,7 +24,7 @@ int main() {
     return 0;
 }
 
-/** assume that binary file contains long long byte code array where each number except 1st one contains an instruction
+/** assume that binary file contains int byte code array where each number except 1st one contains command / argument
  *
 */
 int RunBin (const char * in_fname) {
@@ -45,9 +46,7 @@ int RunBin (const char * in_fname) {
     fread(&n_cmds, sizeof(n_cmds), 1, in_file);
 
     // read byte code array: form and fill asm_nums array
-    int * prog_code = (int *) calloc(n_cmds, sizeof(int));
-    assert(prog_code);
-    int * const prog_code_init = prog_code;
+    int prog_code[n_cmds] = {};
 
     size_t readen = 0;
     readen = fread(prog_code, sizeof(int), n_cmds, in_file);
@@ -61,14 +60,13 @@ int RunBin (const char * in_fname) {
 
     for (int ip = 0; ip < n_cmds; ip++) {
 
-        switch (*prog_code) {
+        switch (prog_code[ip]) {
 
             case CMD_HLT:
                 {
 
                 fprintf(stderr, "hlt encountered, goodbye!\n");
 
-                free(prog_code_init);
                 DtorStack(&my_spu.stk);
 
                 return 0;
@@ -80,8 +78,8 @@ int RunBin (const char * in_fname) {
 
                 fprintf(stderr, "Push imm val\n");
 
-                prog_code++;
-                val = *prog_code;
+                ip++;
+                val = prog_code[ip];
 
                 PushStack(&my_spu.stk, val);
 
@@ -93,8 +91,8 @@ int RunBin (const char * in_fname) {
 
                 fprintf(stderr, "Push from register\n");
 
-                prog_code++;
-                val = *prog_code;
+                ip++;
+                val = prog_code[ip];
 
                 PushStack(&my_spu.stk, my_spu.regs[val]);
 
@@ -122,8 +120,8 @@ int RunBin (const char * in_fname) {
                 fprintf(stderr, "Pop to register\n");
                 pop_err = POP_NO_ERR;
 
-                prog_code++;
-                val = *prog_code;
+                ip++;
+                val = prog_code[ip];
 
                 my_spu.regs[val] = PopStack(&my_spu.stk, &pop_err);
 
@@ -221,10 +219,8 @@ int RunBin (const char * in_fname) {
         val     = 0;
         in_var  = 0;
 
-        prog_code++;
     }
 
-    free(prog_code_init);
     DtorStack(&my_spu.stk);
 
     return 0;
