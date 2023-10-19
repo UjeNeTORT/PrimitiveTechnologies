@@ -12,6 +12,8 @@ static int    EmitCodeArg   (int ** prog_code, int code, int val);
 static int    EmitCodeNoArg (int ** prog_code, int code);
 static char * TokenizeText  (char ** text_ready, size_t n_lines);
 
+static int IsLabel(const char * token);
+
 int main() {
 
     fprintf(stdout, "\n"
@@ -19,7 +21,7 @@ int main() {
                     "# Working...\n"
                     "# If something is wrong it will call you looser, dont cry\n\n");
 
-    AssembleMath("ex1.txt", "ex1_translated.txt");
+    AssembleMath("ex2.txt", "ex2_translated.txt");
 
 
     return 0;
@@ -87,6 +89,9 @@ int TranslateProgram (char * text, int * prog_code) {
     assert(text);
     assert(*text);
     assert(prog_code);
+
+    Label labels[MAX_LBLS] = {};
+    int lbl_id = 0;
 
     char cmd[MAX_CMD] = "";
     int n_cmds = 0;
@@ -182,6 +187,42 @@ int TranslateProgram (char * text, int * prog_code) {
         else if (strcmp(cmd, "div") == 0) {
 
             EmitCodeNoArg(&prog_code, CMD_DIV);
+        }
+        else if (IsLabel(cmd)) {
+
+            char temp[MAX_CMD] = "";                              // TEMPORARY DESISION FOR :label
+            for (int i = 1; cmd[i] != 0; i++) temp[i-1] = cmd[i]; // TEMPORARY DESISION FOR :label
+            labels[lbl_id] = {n_cmds, temp};                      // TEMPORARY DESISION FOR :label
+            lbl_id++;
+        }
+        else if (strcmp(cmd, "jmp") == 0) {
+
+            char lbl_temp[MAX_CMD] = "";
+            if (sscanf(text, "%s %n", lbl_temp, &symbs) == 1) {
+
+                text += symbs; // "rax" len of string (assume all registers consist of )
+                n_cmds++;
+
+                for (int i = 0; i < lbl_id; i++) {
+                    printf("iterating!!!\n");
+                    if (strcmp(labels[i].name, lbl_temp) == 0) {
+
+                        EmitCodeArg(&prog_code, CMD_JMP, labels[i].cmd_ptr);
+                        break;
+                    }
+
+                    if (i == lbl_id - 1) {
+
+                        fprintf(stderr, "SyntaxError! No label \"%s\" found in labels array!\n");
+                        abort();
+                    }
+                }
+            }
+            else {
+
+                fprintf(stderr, "Syntax Error! No label to jmp given! Bye bye looser!\n");
+                abort();
+            }
         }
         else {
 
@@ -292,3 +333,44 @@ static int EmitCodeNoArg (int ** prog_code_ptr, int code) {
     return 0;
 }
 
+/**
+ * @return position from which to scan the label name
+*/
+int IsLabel(const char * token) {
+
+    // todo both :label and label: types of labels
+    // todo make it real soviet function
+
+    assert (token);
+
+    // char lbl_name[MAX_CMD] = "";
+//
+    // while(isspace(*token))
+        // token++;
+//
+    // if (*token == ':') {
+//
+        // token++;
+//
+        // if (isalpha(*token)) {
+//
+            // token++;
+//
+            // while(isalnum(*token)) {
+//
+                // token++;
+            // }
+//
+            // if (*token != 0)
+                // return -1;
+        // }
+        // return -1;
+
+    // }
+
+    if (*token == ':')
+        return 1;
+
+    return 0;
+
+}
