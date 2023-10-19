@@ -45,9 +45,9 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name, const 
 
     int n_cmds = TranslateProgram(text_tokenized, n_lines, prog_code);
 
-    // WriteCodeTxt(fout_name, prog_code, n_cmds);
+    WriteCodeTxt(fout_name, prog_code, n_cmds);
 
-    WriteCodeBin("translated.bin", prog_code, n_cmds); // TODO filename to vars
+    WriteCodeBin("translated.bin", prog_code, n_cmds); // TODO filename to const
 
     // TODO to func
     free(prog_code);
@@ -192,8 +192,7 @@ int TranslateProgram (char * text, size_t n_lines, int * prog_code) {
     return n_cmds;
 }
 
-//! broken until fix
-int WriteCodeTxt(const char * fout_name, char * prog_code, size_t n_cmds) {
+int WriteCodeTxt(const char * fout_name, int * prog_code, size_t n_cmds) {
 
     assert(fout_name);
     assert(prog_code);
@@ -206,16 +205,15 @@ int WriteCodeTxt(const char * fout_name, char * prog_code, size_t n_cmds) {
 
     for (int ip = 0; ip < n_cmds; ip++) {
 
-        cmd_id  = prog_code[ip] >> 32;
-        cmd_val = prog_code[ip] & 0xFFFFFFFF; // 32 zeros 32 1s
+        cmd_id  = prog_code[ip];
+        fprintf(fout, "%d ", cmd_id);
 
-        if (cmd_val)
-            fprintf(fout, "%d %d\n", cmd_id, cmd_val);
-        else
-            fprintf(fout, "%d\n", cmd_id);
+        if (prog_code[ip] != CMD_HLT && (prog_code[ip] & ARG_IMMED_VAL || prog_code[ip] & ARG_REGTR_VAL))
+            fprintf(fout, "%d", prog_code[++ip]);
+
+        fprintf(fout, "\n");
 
         cmd_id  = 0;
-        cmd_val = 0;
     }
 
     fclose(fout);
