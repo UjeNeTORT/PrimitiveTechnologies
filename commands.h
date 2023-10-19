@@ -5,6 +5,8 @@
 
 const size_t MAX_CMD = 100;
 
+const char * BIN_FILENAME = "translated.bin";
+
 const int ARG_IMMED_VAL = 0b0001'0000;
 const int ARG_REGTR_VAL = 0b0010'0000;
 

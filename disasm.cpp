@@ -1,15 +1,25 @@
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include "asm.h"
-const char * BIN_FILENAME    = "translated.bin";
+#include "commands.h"
+
 const char * DISASM_FILENAME = "disasmed.txt";
 
+static int DisAssemble(const char * asm_fname, const char * out_fname);
+
 int main() {
+
+    fprintf(stdout, "\n"
+                    "# Disassembler by NeTort, 2023\n"
+                    "# Working...\n"
+                    "# Like a surgeon carefully slicing flesh of byte code array and showing all its organs\n\n");
 
     DisAssemble(BIN_FILENAME, DISASM_FILENAME);
 
     return 0;
 }
+
 int DisAssemble(const char * asm_fname, const char * out_fname) {
 
     assert (asm_fname);
@@ -35,7 +45,6 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
     FILE * fout = fopen(out_fname, "wb");
 
     int val     = 0;
-    int in_var  = 0;
 
     for (size_t ip = 0; ip < n_cmds; ip++) {
 

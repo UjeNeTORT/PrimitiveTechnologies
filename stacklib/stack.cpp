@@ -98,7 +98,7 @@ static int    GetNewCapacity     (stack *stk, stk_debug_info debuf_info);
 static void UpdStackHash(stack *stk);
 
 // in order not to create another one every time i need it
-unsigned err_vector = 0;
+size_t err_vector = 0;
 char * err_msg = (char *) calloc(MAX_ERR_MSG_STRING, sizeof(char *)); //
 
 //-------------------------------------------------------------------------------------
@@ -358,7 +358,7 @@ static void FreeData (stk_data *data, int capacity) {
     if (!data)
         return;
 
-    for (size_t i = 0; i < capacity; i++) {
+    for (int i = 0; i < capacity; i++) {
         data->buf[i] = POISON; // DEAD MEMORY
     }
 
@@ -380,7 +380,7 @@ static void FreeData (stk_data *data, int capacity) {
 //-------------------------------------------------------------------------------------
 void StackDump(const char  * const fname,
                const stack *       stk,
-               size_t              err_vector,
+               size_t              err_vec,
                const char  *       stk_name,
                const char  * const err_file,
                int                 err_line,
@@ -417,7 +417,7 @@ void StackDump(const char  * const fname,
 
     #endif // defined(STACK_HASH_PROTECT)
 
-    err_msg = FormErrMsg(err_vector);
+    err_msg = FormErrMsg(err_vec);
     if (*err_msg)
         fprintf(fout, "ERRORS: %s\n", err_msg);
 

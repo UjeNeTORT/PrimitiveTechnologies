@@ -14,7 +14,13 @@ static char * TokenizeText  (char ** text_ready, size_t n_lines);
 
 int main() {
 
-    AssembleMath("ex1.txt", "ex1_translated.txt", "user_commands.txt");
+    fprintf(stdout, "\n"
+                    "# Assembler by NeTort, 2023\n"
+                    "# Working...\n"
+                    "# If something is wrong it will call you looser, dont cry\n\n");
+
+    AssembleMath("ex1.txt", "ex1_translated.txt");
+
 
     return 0;
 }
@@ -22,7 +28,7 @@ int main() {
 /**
  * @brief change commands from fin_name to their codes (from usr_cmd) fout_name. cmd_arr of usr_cmd structs is formed using ParseCmdNames func
 */
-enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name, const char * cmds_file) {
+enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
 
     assert(fin_name);
     assert(fout_name);
@@ -107,7 +113,7 @@ int TranslateProgram (char * text, int * prog_code) {
                 if (reg_id < 0 || reg_id > 4 - 1)       // TODO to function calculation of register id
                     fprintf(stderr, "Register %d is incorrect!\n", reg_id);
 
-                EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_PUSH, reg_id); // TODO EmitCodeReg in order not to waste 4 bytes for reg index which is no more than 256
+                EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_PUSH, reg_id);
             }
             else if (sscanf(text, "%d %n", &arg, &symbs) == 1) {
 
@@ -118,7 +124,7 @@ int TranslateProgram (char * text, int * prog_code) {
             }
             else {
 
-                fprintf(stderr, "SyntaxError! No argument after \"push\"\n");
+                fprintf(stderr, "# SyntaxError! No argument after \"push\"\n");
                 abort();
             }
         }
@@ -131,9 +137,9 @@ int TranslateProgram (char * text, int * prog_code) {
 
                 reg_id -= 'a';
                 if (reg_id < 0 || reg_id > 4 - 1)       // TODO to function calculation of register id
-                    fprintf(stderr, "Register %d is incorrect!\n", reg_id);
+                    fprintf(stderr, "# Register %d is incorrect!\n", reg_id);
 
-                EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_POP, reg_id); // TODO EmitCodeReg in order not to waste 4 bytes for reg index which is no more than 256
+                EmitCodeArg(&prog_code, ARG_REGTR_VAL | CMD_POP, reg_id);
 
             }
             else if (sscanf(text, "%d %n", &arg, &symbs) == 1) { // useless as there are no immed val args for pop
@@ -179,7 +185,7 @@ int TranslateProgram (char * text, int * prog_code) {
         }
         else {
 
-            fprintf(stderr, "Syntax error! No command \"%s\" found. Bye bye looser!\n", cmd);
+            fprintf(stderr, "# Syntax error! No command \"%s\" found. Bye bye looser!\n", cmd);
             abort();
         }
 
@@ -201,7 +207,7 @@ int WriteCodeTxt(const char * fout_name, int * prog_code, size_t n_cmds) {
 
     int cmd_id  = 0;
 
-    for (int ip = 0; ip < n_cmds; ip++) {
+    for (size_t ip = 0; ip < n_cmds; ip++) {
 
         cmd_id  = prog_code[ip];
         fprintf(fout, "%d ", cmd_id);

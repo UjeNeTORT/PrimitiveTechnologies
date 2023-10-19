@@ -13,16 +13,16 @@ Hash_t HashMod(const void * val, int size) {
 
     int char_num = size % sizeof(int);
 
-    for (int i = 0; i < size / sizeof(int); i++) {
-        hash += *(int * ) val % DENOMINATOR;
+    for (size_t i = 0; i < size / sizeof(int); i++) {
+        hash += *(const int * ) val % DENOMINATOR;
         hash %= DENOMINATOR;
-        val = (int *) val + 1;
+        val = (const int *) val + 1;
     }
 
     for (int i = 0; i < char_num; i++) {
-        hash += *(char *) val % DENOMINATOR;
+        hash += *(const char *) val % DENOMINATOR;
         hash %= DENOMINATOR;
-        val = (char *) val + 1;
+        val = (const char *) val + 1;
     }
 
     return hash;

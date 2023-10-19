@@ -8,14 +8,17 @@
 #include "./stacklib/stack.h"
 #include "./text_processing_lib/text_buf.h"
 
-const char * BIN_FILENAME = "translated.bin";
-const int    MAX_CMD_CODE = 8;
+static int RunBin     (const char * in_fname);
 
-int RunBin     (const char * in_fname);
-
-int DivideInts (int numerator, int denominator);
+static int DivideInts (int numerator, int denominator);
 
 int main() {
+
+    fprintf(stdout, "\n"
+                    "# Processor by NeTort, 2023\n"
+                    "# Does stuff... What else can i say?\n"
+                    "# Today i ve accidentially skipped descrete analisys seminar. Im such a morron.\n"
+                    "# On the other hand i have coded this app faster...\n\n");
 
     RunBin(BIN_FILENAME);
 
@@ -65,7 +68,7 @@ int RunBin (const char * in_fname) {
             case CMD_HLT:
                 {
 
-                fprintf(stderr, "hlt encountered, goodbye!\n");
+                fprintf(stderr, "# Hlt encountered, goodbye!\n");
 
                 free(prog_code_init);
                 DtorStack(&my_spu.stk);
@@ -77,7 +80,7 @@ int RunBin (const char * in_fname) {
             case ARG_IMMED_VAL | CMD_PUSH:
                 {
 
-                fprintf(stderr, "Push imm val\n");
+                fprintf(stderr, "# Push imm val\n");
 
                 prog_code++;
                 ip++;
@@ -91,7 +94,7 @@ int RunBin (const char * in_fname) {
             case ARG_REGTR_VAL | CMD_PUSH:
                 {
 
-                fprintf(stderr, "Push from register\n");
+                fprintf(stderr, "# Push from register\n");
 
                 prog_code++;
                 ip++;
@@ -108,7 +111,7 @@ int RunBin (const char * in_fname) {
             case CMD_POP:
                 {
 
-                fprintf(stderr, "Pop immediate number\n");
+                fprintf(stderr, "# Pop immediate number\n");
 
                 pop_err = POP_NO_ERR;
                 PopStack(&my_spu.stk, &pop_err);
@@ -120,7 +123,7 @@ int RunBin (const char * in_fname) {
             case ARG_REGTR_VAL | CMD_POP:
                 {
 
-                fprintf(stderr, "Pop to register\n");
+                fprintf(stderr, "# Pop to register\n");
                 pop_err = POP_NO_ERR;
 
                 prog_code++;
@@ -136,7 +139,7 @@ int RunBin (const char * in_fname) {
             case CMD_IN:
                 {
 
-                fprintf(stderr, "In: please enter your variable...\n");
+                fprintf(stdout, "In: please enter your variable...\n>> ");
 
                 in_var = 0;
                 fscanf(stdin, "%d", &in_var);
@@ -151,7 +154,7 @@ int RunBin (const char * in_fname) {
                 {
 
                 pop_err = POP_NO_ERR;
-                fprintf(stderr, "Out:   %d\n", PopStack(&my_spu.stk, &pop_err));
+                fprintf(stdout, "Out:   %d\n", PopStack(&my_spu.stk, &pop_err));
 
                 break;
 
@@ -213,7 +216,7 @@ int RunBin (const char * in_fname) {
             default:
                 {
 
-                fprintf(stderr, "Syntax Error! No command \"%s\" found! Bye bye looser!\n", *prog_code);
+                fprintf(stderr, "# Syntax Error! No command \"%d\" found! Bye bye looser!\n", *prog_code);
 
                 return 1;
 
