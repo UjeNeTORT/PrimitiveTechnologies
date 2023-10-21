@@ -17,10 +17,15 @@ enum ASM_OUT {
     ASM_OUT_ERR    = 1
 };
 
+enum REG_ID_OUT {
+    REG_ID_NOT_ALLOWED = -2,
+    REG_ID_NOT_A_REG   = -1
+};
+
 static enum ASM_OUT AssembleMath      (const char * fin_name, const char * fout_name);
 static int          PreprocessProgram (char ** text, size_t n_lines);
-static int          TranslateProgram  (char * text, int * prog_code);
-static int          WriteCodeTxt      (const char * fout_name, int * prog_code, size_t n_cmds);
-static int          WriteCodeBin      (const char * fout_name, int * prog_code, size_t n_cmds);
+static int          TranslateProgram  (char * text, char * prog_code);
+static int          WriteCodeTxt      (const char * fout_name, char * prog_code, size_t n_cmds);
+static int          WriteCodeBin      (const char * fout_name, char * prog_code, size_t n_cmds);
 
 #endif // COMPILER_H

@@ -63,10 +63,10 @@ int RunBin (const char * in_fname) {
 
     for (size_t ip = 0; ip < n_cmds; ip++) {
 
-        switch (*prog_code) {
+        switch (prog_code[ip]) {
 
             case CMD_HLT:
-                {
+            {
 
                 fprintf(stderr, "# Hlt encountered, goodbye!\n");
 
@@ -75,30 +75,26 @@ int RunBin (const char * in_fname) {
 
                 return 0;
 
-                }
+            }
 
             case ARG_IMMED_VAL | CMD_PUSH:
-                {
+            {
 
-                fprintf(stderr, "# Push imm val\n");
-
-                prog_code++;
-                ip++;
-                val = *prog_code;
+                val = prog_code[++ip];
 
                 PushStack(&my_spu.stk, val);
 
+                fprintf(stderr, "# Push imm val (%d)\n", val);
+
                 break;
-                }
+            }
 
             case ARG_REGTR_VAL | CMD_PUSH:
-                {
+            {
 
                 fprintf(stderr, "# Push from register\n");
 
-                prog_code++;
-                ip++;
-                val = *prog_code;
+                val = prog_code[++ip];
 
                 PushStack(&my_spu.stk, my_spu.regs[val]);
 
@@ -106,10 +102,10 @@ int RunBin (const char * in_fname) {
 
                 break;
 
-                }
+            }
 
             case CMD_POP:
-                {
+            {
 
                 fprintf(stderr, "# Pop immediate number\n");
 
@@ -118,26 +114,24 @@ int RunBin (const char * in_fname) {
 
                 break;
 
-                }
+            }
 
             case ARG_REGTR_VAL | CMD_POP:
-                {
+            {
 
                 fprintf(stderr, "# Pop to register\n");
                 pop_err = POP_NO_ERR;
 
-                prog_code++;
-                ip++;
-                val = *prog_code;
+                val = prog_code[++ip];
 
                 my_spu.regs[val] = PopStack(&my_spu.stk, &pop_err);
 
                 break;
 
-                }
+            }
 
             case CMD_IN:
-                {
+            {
 
                 fprintf(stdout, "In: please enter your variable...\n>> ");
 
@@ -148,20 +142,20 @@ int RunBin (const char * in_fname) {
 
                 break;
 
-                }
+            }
 
             case CMD_OUT:
-                {
+            {
 
                 pop_err = POP_NO_ERR;
                 fprintf(stdout, "Out:   %d\n", PopStack(&my_spu.stk, &pop_err));
 
                 break;
 
-                }
+            }
 
             case CMD_ADD:
-                {
+            {
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -170,10 +164,10 @@ int RunBin (const char * in_fname) {
 
                 break;
 
-                }
+            }
 
             case CMD_SUB:
-                {
+            {
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -183,10 +177,10 @@ int RunBin (const char * in_fname) {
 
                 break;
 
-                }
+            }
 
             case CMD_MUL:
-                {
+            {
 
                 pop_err = POP_NO_ERR;
                 val = 0;
@@ -195,10 +189,10 @@ int RunBin (const char * in_fname) {
 
                 break;
 
-                }
+            }
 
             case CMD_DIV:
-                {
+            {
 
                 pop_err = POP_NO_ERR;
                 int denominator = PopStack(&my_spu.stk, &pop_err);
@@ -211,22 +205,28 @@ int RunBin (const char * in_fname) {
 
                 break;
 
-                }
+            }
+
+            case CMD_JMP:
+            {
+
+                ip = prog_code[ip + 1];
+
+                fprintf(stderr, "# Jump to %lu\n", ip);
+            }
 
             default:
-                {
+            {
 
-                fprintf(stderr, "# Syntax Error! No command \"%d\" found! Bye bye looser!\n", *prog_code);
+                fprintf(stderr, "# Syntax Error! No command \"%d\" (%d) found! Bye bye looser!\n", prog_code[ip], ip);
 
                 return 1;
 
-                }
+            }
         }
 
         val     = 0;
         in_var  = 0;
-
-        prog_code++;
     }
 
     free(prog_code_init);
