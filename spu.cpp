@@ -43,17 +43,17 @@ int RunBin (const char * in_fname) {
     FILE * in_file = fopen(in_fname, "rb");
 
     // read size of the long long byte code array
-    size_t n_cmds = 0;
-    fread(&n_cmds, sizeof(n_cmds), 1, in_file);
+    size_t n_bytes = 0;
+    fread(&n_bytes, sizeof(size_t), 1, in_file);
 
     // read byte code array: form and fill prog_code array
-    int * prog_code = (int *) calloc(n_cmds, sizeof(int));
+    char * prog_code = (char *) calloc(n_bytes, sizeof(char));
     assert(prog_code);
-    int * const prog_code_init = prog_code;
+    char * const prog_code_init = prog_code;
 
     size_t readen = 0;
-    readen = fread(prog_code, sizeof(int), n_cmds, in_file);
-    assert(readen == n_cmds);
+    readen = fread(prog_code, sizeof(char), n_bytes, in_file);
+    assert(readen == n_bytes);
 
     fclose(in_file);
 
@@ -61,7 +61,7 @@ int RunBin (const char * in_fname) {
     int val     = 0;
     int in_var  = 0;
 
-    for (size_t ip = 0; ip < n_cmds; ip++) {
+    for (size_t ip = 0; ip < n_bytes; ip++) {
 
         switch (prog_code[ip]) {
 
@@ -74,13 +74,14 @@ int RunBin (const char * in_fname) {
                 DtorStack(&my_spu.stk);
 
                 return 0;
-
             }
 
             case ARG_IMMED_VAL | CMD_PUSH:
             {
 
-                val = prog_code[++ip];
+                ip += 1;
+                val = ((int *)prog_code)[ip];
+                ip += 3;
 
                 PushStack(&my_spu.stk, val);
 
@@ -94,14 +95,14 @@ int RunBin (const char * in_fname) {
 
                 fprintf(stderr, "# Push from register\n");
 
-                val = prog_code[++ip];
+                ip++;
+                val = prog_code[ip];
 
                 PushStack(&my_spu.stk, my_spu.regs[val]);
 
                 val = 0;
 
                 break;
-
             }
 
             case CMD_POP:
@@ -113,7 +114,6 @@ int RunBin (const char * in_fname) {
                 PopStack(&my_spu.stk, &pop_err);
 
                 break;
-
             }
 
             case ARG_REGTR_VAL | CMD_POP:
@@ -122,12 +122,12 @@ int RunBin (const char * in_fname) {
                 fprintf(stderr, "# Pop to register\n");
                 pop_err = POP_NO_ERR;
 
-                val = prog_code[++ip];
+                ip++;
+                val = prog_code[ip];
 
                 my_spu.regs[val] = PopStack(&my_spu.stk, &pop_err);
 
                 break;
-
             }
 
             case CMD_IN:
@@ -141,7 +141,6 @@ int RunBin (const char * in_fname) {
                 PushStack(&my_spu.stk, in_var);
 
                 break;
-
             }
 
             case CMD_OUT:
@@ -151,7 +150,6 @@ int RunBin (const char * in_fname) {
                 fprintf(stdout, "Out:   %d\n", PopStack(&my_spu.stk, &pop_err));
 
                 break;
-
             }
 
             case CMD_ADD:
@@ -163,7 +161,6 @@ int RunBin (const char * in_fname) {
                 PushStack(&my_spu.stk, val);
 
                 break;
-
             }
 
             case CMD_SUB:
@@ -176,7 +173,6 @@ int RunBin (const char * in_fname) {
                 PushStack(&my_spu.stk, val);
 
                 break;
-
             }
 
             case CMD_MUL:
@@ -188,7 +184,6 @@ int RunBin (const char * in_fname) {
                 PushStack(&my_spu.stk, val);
 
                 break;
-
             }
 
             case CMD_DIV:
@@ -204,29 +199,30 @@ int RunBin (const char * in_fname) {
                 PushStack(&my_spu.stk, val);
 
                 break;
-
             }
 
-            case CMD_JMP:
+            case ARG_IMMED_VAL | CMD_JMP:
             {
 
                 ip = prog_code[ip + 1];
 
                 fprintf(stderr, "# Jump to %lu\n", ip);
+
+                break;
             }
 
             default:
             {
 
-                fprintf(stderr, "# Syntax Error! No command \"%d\" (%d) found! Bye bye looser!\n", prog_code[ip], ip);
+                fprintf(stderr, "# Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
 
                 return 1;
-
             }
         }
 
         val     = 0;
         in_var  = 0;
+
     }
 
     free(prog_code_init);

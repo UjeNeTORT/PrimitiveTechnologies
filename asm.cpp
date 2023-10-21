@@ -214,7 +214,7 @@ int TranslateProgram (char * text, char * prog_code) {
 
                     if (strcmp(labels[i].name, lbl_temp) == 0) {
 
-                        EmitCodeArg(&prog_code, CMD_JMP, labels[i].cmd_ptr);
+                        EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JMP, labels[i].cmd_ptr);
                         break;
                     }
 
@@ -305,7 +305,7 @@ int TokenizeText (char ** text, size_t n_lines, char * text_tokenized) {
 
         line_size = strlen(text[line]);
 
-        strncpy(text_tokenized, text[line], line_size); //! SEGMENTATION FAULT
+        strncpy(text_tokenized, text[line], line_size);
 
         text_tokenized += line_size;
         *text_tokenized = ' ';
