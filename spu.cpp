@@ -10,6 +10,7 @@
 
 static int RunBin     (const char * in_fname);
 
+static int FixEndianess(int num);
 static int DivideInts (int numerator, int denominator);
 
 int main() {
@@ -19,6 +20,8 @@ int main() {
                     "# Does stuff... What else can i say?\n"
                     "# Today i ve accidentially skipped descrete analisys seminar. Im such a morron.\n"
                     "# On the other hand i have coded this app faster...\n\n");
+
+    printf("%d\n", FixEndianess(1));
 
     RunBin(BIN_FILENAME);
 
@@ -80,7 +83,10 @@ int RunBin (const char * in_fname) {
             {
 
                 ip += 1;
-                val = ((int *)prog_code)[ip];
+
+                // val = ((int *)prog_code)[ip];
+                val = *(int *)(prog_code + ip);
+
                 ip += 3;
 
                 PushStack(&my_spu.stk, val);
@@ -208,6 +214,7 @@ int RunBin (const char * in_fname) {
 
                 fprintf(stderr, "# Jump to %lu\n", ip);
 
+                ip--; // because ip is to be increased in for-statement
                 break;
             }
 
@@ -229,6 +236,23 @@ int RunBin (const char * in_fname) {
     DtorStack(&my_spu.stk);
 
     return 0;
+}
+
+int FixEndianess(int num) {
+
+    char byte1 = (num & 0xff'00'00'00) >> 3*8;
+    char byte2 = (num & 0x00'ff'00'00) >> 2*8;
+    char byte3 = (num & 0x00'00'ff'00) >> 1*8;
+    char byte4 = (num & 0x00'00'00'ff) >> 0*8;
+
+    int res = 0;
+
+    res |= byte4 << 3*8;
+    res |= byte3 << 2*8;
+    res |= byte2 << 1*8;
+    res |= byte1 << 0*8;
+
+    return res;
 }
 
  int DivideInts(int numerator, int denominator) {
