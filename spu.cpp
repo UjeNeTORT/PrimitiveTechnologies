@@ -10,8 +10,9 @@
 
 static int RunBin     (const char * in_fname);
 
-static int FixEndianess(int num);
-static int DivideInts (int numerator, int denominator);
+static int    FixEndianess   (int num);
+static Elem_t PopCmpTopStack (stack stk);
+static int    DivideInts     (int numerator, int denominator);
 
 int main() {
 
@@ -20,8 +21,6 @@ int main() {
                     "# Does stuff... What else can i say?\n"
                     "# Today i ve accidentially skipped descrete analisys seminar. Im such a morron.\n"
                     "# On the other hand i have coded this app faster...\n\n");
-
-    printf("%d\n", FixEndianess(1));
 
     RunBin(BIN_FILENAME);
 
@@ -166,6 +165,8 @@ int RunBin (const char * in_fname) {
                 val = PopStack(&my_spu.stk, &pop_err) + PopStack(&my_spu.stk, &pop_err);
                 PushStack(&my_spu.stk, val);
 
+                fprintf(stderr, "# add: %d\n", val);
+
                 break;
             }
 
@@ -187,6 +188,9 @@ int RunBin (const char * in_fname) {
                 pop_err = POP_NO_ERR;
                 val = 0;
                 val =  PopStack(&my_spu.stk, &pop_err) * PopStack(&my_spu.stk, &pop_err);
+
+                fprintf(stderr, "# mul: %d\n", val);
+
                 PushStack(&my_spu.stk, val);
 
                 break;
@@ -215,6 +219,25 @@ int RunBin (const char * in_fname) {
                 fprintf(stderr, "# Jump to %lu\n", ip);
 
                 ip--; // because ip is to be increased in for-statement
+
+                break;
+            }
+
+            case ARG_IMMED_VAL | CMD_JA:
+            {
+
+                int cmp_res = PopCmpTopStack(my_spu.stk);
+
+                if (cmp_res > 0)
+                    {
+
+                        ip = prog_code[ip + 1];
+
+                        fprintf(stderr, "# Jump to %lu\n", ip);
+
+                        ip--; // because ip is to be increased in for-statement
+                    }
+
                 break;
             }
 
@@ -229,13 +252,36 @@ int RunBin (const char * in_fname) {
 
         val     = 0;
         in_var  = 0;
-
     }
 
     free(prog_code_init);
     DtorStack(&my_spu.stk);
 
     return 0;
+}
+
+Elem_t PopCmpTopStack(stack stk) {
+
+    Elem_t val_top = 0;
+    Elem_t val_below = 0;
+
+    enum POP_OUT pop_err = POP_NO_ERR;
+
+    val_top = PopStack(&stk, &pop_err);
+
+    if (pop_err != POP_NO_ERR) {
+        fprintf(stderr, "Stack Error!\n");
+        abort();
+    }
+
+    val_below = PopStack(&stk, &pop_err);
+
+    if (pop_err != POP_NO_ERR) {
+        fprintf(stderr, "Stack Error!\n");
+        abort();
+    }
+
+    return val_below - val_top;
 }
 
 int FixEndianess(int num) {

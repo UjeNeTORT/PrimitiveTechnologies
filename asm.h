@@ -8,6 +8,9 @@
 
 #include "commands.h"
 
+const size_t       RUNS_CNT       = 2;
+const size_t       RUN_LBL_UPD    = 2;
+
 const size_t       MAX_LINES      = 100;
 const size_t       CMDS_PER_LINE  = 2;
 const char * const DFLT_CMDS_FILE = "user_commands.txt";

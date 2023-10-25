@@ -8,13 +8,14 @@
 #include "commands.h"
 #include "./text_processing_lib/text_buf.h"
 
-static int    LabelCtor     (Label labels[], int lbl_id, int byte_pos, char * name);
-static int    EmitCodeArg   (char ** prog_code, char code, int val);
-static int    EmitCodeReg   (char ** prog_code, char code, char reg_id);
-static int    EmitCodeNoArg (char ** prog_code, char code);
-static int    TokenizeText  (char ** text_ready, size_t n_lines, char * text_tokenized);
-static char   ScanRegId     (const char * token);
-static int    CorrectRegId  (int reg_id);
+static int  LabelCtor     (Label labels[], int lbl_id, int byte_pos, char * name);
+static int  LabelFind     (Label labels[], int lbl_id, char * token);
+static int  EmitCodeArg   (char ** prog_code, char code, int val);
+static int  EmitCodeReg   (char ** prog_code, char code, char reg_id);
+static int  EmitCodeNoArg (char ** prog_code, char code);
+static int  TokenizeText  (char ** text_ready, size_t n_lines, char * text_tokenized);
+static char ScanRegId     (const char * token);
+static int  CorrectRegId  (int reg_id);
 
 static int IsLabel (const char * token);
 
@@ -27,7 +28,7 @@ int main() {
                     "# Working...\n"
                     "# If something is wrong it will call you looser, dont cry\n\n");
 
-    AssembleMath("ex2.txt", "ex2_translated.txt");
+    AssembleMath("ex3.txt", "ex3_translated.txt");
 
     return 0;
 }
@@ -53,14 +54,12 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
     //============= PUT TEXT IN ARRAY OF WORDS SEPEARATED BY BLANKS ==================
 
     char * text_tokenized = (char *) calloc (n_lines * CMDS_PER_LINE * MAX_CMD, sizeof(char));
-    printf("BEFORE TOKENIZE\n");
+
     int n_tokens = TokenizeText(in_text, n_lines, text_tokenized);
-    printf("after\n");
+
     char * prog_code = (char *) calloc(n_tokens, sizeof(int));
 
-    printf("BEFORE TRANSLATE\n");
     int n_bytes = TranslateProgram(text_tokenized, prog_code);
-    printf("after\n");
 
     WriteCodeBin("translated.bin", prog_code, n_bytes); // TODO filename to const
 
@@ -109,21 +108,47 @@ int TranslateProgram (char * text, char * prog_code) {
     int  arg    = 0;
     int  symbs  = 0;
 
-    while (*text) {
+    char * text_init = text;
 
+    // ========== FIRST RUN ==========
+    while (*text)
+    {
+        if (sscanf(text, "%s %n", token, &symbs) <= 0)
+                break;
+
+        text += symbs;
+
+        if (IsLabel(token))
+        {
+            LabelCtor(labels, lbl_id, n_bytes, token);
+            lbl_id++;
+        }
+        else
+        {
+            n_bytes++;
+        }
+    }
+
+    // ========= SECOND RUN =========
+
+    text = text_init;
+    n_bytes = 0;
+
+    while (*text)
+    {
         if (sscanf(text, "%s %n", token, &symbs) <= 0)
             break;
 
         text += symbs;
 
-        if (strcmp(token, "push") == 0) {
-
+        if (strcmp(token, "push") == 0)
+        {
             sscanf(text, "%s %n", &temp_token, &symbs);
 
-            if ((reg_id = ScanRegId(temp_token)) != -1) {
-
-                if (!CorrectRegId(reg_id)) {
-
+            if ((reg_id = ScanRegId(temp_token)) != -1)
+            {
+                if (!CorrectRegId(reg_id))
+                {
                     fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", token);
                     abort();
                 }
@@ -133,15 +158,15 @@ int TranslateProgram (char * text, char * prog_code) {
 
                 EmitCodeReg(&prog_code, ARG_REGTR_VAL | CMD_PUSH, reg_id);
             }
-            else if (sscanf(text, "%d %n", &arg, &symbs) == 1) {
-
+            else if (sscanf(text, "%d %n", &arg, &symbs) == 1)
+            {
                 text += symbs; // "123" -> skipping 3 bytes
                 n_bytes += sizeof(int);
 
                 EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_PUSH, arg);
             }
-            else {
-
+            else
+            {
                 fprintf(stderr, "# SyntaxError! No argument after \"push\"\n");
                 abort();
             }
@@ -150,10 +175,10 @@ int TranslateProgram (char * text, char * prog_code) {
 
             sscanf(text, "%s %n", &temp_token, &symbs);
 
-            if ((reg_id = ScanRegId(temp_token)) != -1) {
-
-                if (!CorrectRegId(reg_id)) {
-
+            if ((reg_id = ScanRegId(temp_token)) != -1)
+            {
+                if (!CorrectRegId(reg_id))
+                {
                     fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", token);
                     abort();
                 }
@@ -163,76 +188,96 @@ int TranslateProgram (char * text, char * prog_code) {
 
                 EmitCodeReg(&prog_code, ARG_REGTR_VAL | CMD_POP, reg_id);
             }
-            else {
-
+            else
+            {
                 EmitCodeNoArg(&prog_code, CMD_POP);
             }
-        }
-        else if (strcmp(token, "hlt") == 0) {
-
+            }
+        else if (strcmp(token, "hlt") == 0)
+        {
             EmitCodeNoArg(&prog_code, CMD_HLT);
         }
-        else if (strcmp(token, "in") == 0) {
-
+        else if (strcmp(token, "in") == 0)
+        {
             EmitCodeNoArg(&prog_code, CMD_IN);
         }
-        else if (strcmp(token, "out") == 0) {
-
+        else if (strcmp(token, "out") == 0)
+        {
             EmitCodeNoArg(&prog_code, CMD_OUT);
         }
-        else if (strcmp(token, "add") == 0) {
-
+        else if (strcmp(token, "add") == 0)
+        {
             EmitCodeNoArg(&prog_code, CMD_ADD);
         }
-        else if (strcmp(token, "sub") == 0) {
-
+        else if (strcmp(token, "sub") == 0)
+        {
             EmitCodeNoArg(&prog_code, CMD_SUB);
         }
-        else if (strcmp(token, "mul") == 0) {
-
+        else if (strcmp(token, "mul") == 0)
+        {
             EmitCodeNoArg(&prog_code, CMD_MUL);
         }
-        else if (strcmp(token, "div") == 0) {
-
+        else if (strcmp(token, "div") == 0)
+        {
             EmitCodeNoArg(&prog_code, CMD_DIV);
         }
-        else if (IsLabel(token)) {
-
-            LabelCtor(labels, lbl_id, n_bytes, token);
-            lbl_id++;
+        else if (IsLabel(token))
+        {
             n_bytes -= sizeof(char); // by default it treats labels as command or argument and increases number of bytes, so we need to decrease it when we figured out it is label
         }
-        else if (strcmp(token, "jmp") == 0) {
+        else if (strcmp(token, "jmp") == 0)
+        {
+            char lbl_name[MAX_CMD] = "";
 
-            char lbl_temp[MAX_CMD] = "";
-            if (sscanf(text, "%s %n", lbl_temp, &symbs) == 1) {
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-                n_bytes += sizeof(char);
-
-                for (int i = 0; i < lbl_id; i++) {
-
-                    if (strcmp(labels[i].name, lbl_temp) == 0) {
-
-                        EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JMP, labels[i].cmd_ptr);
-                        break;
-                    }
-
-                    if (i == lbl_id - 1) {
-
-                        fprintf(stderr, "SyntaxError! No label \"%s\" found in labels array!\n", lbl_temp);
-                        abort();
-                    }
-                }
-            }
-            else {
-
+            if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
+            {
                 fprintf(stderr, "Syntax Error! No label to jmp given! Bye bye looser!\n");
                 abort();
             }
-        }
-        else {
 
+            text += symbs; // "rax" len of string (assume all registers consist of )
+            n_bytes += sizeof(char);
+
+            int cmd_ptr = LabelFind(labels, lbl_id, lbl_name);
+
+            if (cmd_ptr == -1)
+            {
+                fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n");
+                abort();
+            }
+            else
+            {
+                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JMP, cmd_ptr);
+            }
+        }
+        else if (strcmp(token, "ja") == 0) {
+
+            char lbl_name[MAX_CMD] = "";
+
+            if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
+            {
+                fprintf(stderr, "Syntax Error! No label to ja given! Bye bye looser!\n");
+                abort();
+            }
+
+            text += symbs; // "rax" len of string (assume all registers consist of )
+            n_bytes += sizeof(char);
+
+            int cmd_ptr = LabelFind(labels, lbl_id, lbl_name);
+
+            if (cmd_ptr == -1)
+            {
+                fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n");
+                abort();
+            }
+            else
+            {
+                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JA, cmd_ptr);
+            }
+
+        }
+        else
+        {
             fprintf(stderr, "# Syntax error! No command \"%s\" found. Bye bye looser!\n", token);
             abort();
         }
@@ -447,4 +492,20 @@ int LabelCtor (Label labels[], int lbl_id, int byte_pos, char * name) {
     labels[lbl_id] = {byte_pos, temp};
 
     return 0; // todo return enum
+}
+
+int LabelFind (Label labels[], int lbl_id, char * token) {
+
+    for (int i = 0; i < lbl_id; i++) {
+
+                if (strcmp(labels[i].name, token) == 0) {
+
+                    return labels[i].cmd_ptr;
+                }
+
+                if (i == lbl_id - 1) {
+
+                    return -1;
+                }
+            }
 }
