@@ -666,6 +666,12 @@ int LabelCtor (Label labels[], int n_lbls, int byte_pos, const char * name)
     char * col_pos = strchr(name_no_col, ':');
     *col_pos = 0;
 
+    if (LabelFind(labels, n_lbls, name_no_col) != -1)
+    {
+        fprintf(stderr, "Syntax Error! Two labels with same name found!\n");
+        abort();
+    }
+
     labels[n_lbls] = {byte_pos, name_no_col};
 
     return 0; // todo return enum
