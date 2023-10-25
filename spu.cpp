@@ -10,8 +10,7 @@
 
 static int RunBin     (const char * in_fname);
 
-static int    FixEndianess   (int num);
-static Elem_t PopCmpTopStack (stack stk);
+static Elem_t PopCmpTopStack (stack * stk_ptr);
 static int    DivideInts     (int numerator, int denominator);
 
 int main() {
@@ -63,13 +62,12 @@ int RunBin (const char * in_fname) {
     int val     = 0;
     int in_var  = 0;
 
-    for (size_t ip = 0; ip < n_bytes; ip++) {
+    for (size_t ip = 0; ip < n_bytes; ip += sizeof(char)) {
 
         switch (prog_code[ip]) {
 
             case CMD_HLT:
             {
-
                 fprintf(stderr, "# Hlt encountered, goodbye!\n");
 
                 free(prog_code_init);
@@ -80,30 +78,32 @@ int RunBin (const char * in_fname) {
 
             case ARG_IMMED_VAL | CMD_PUSH:
             {
+                ip += sizeof(char);
 
-                ip += 1;
-
-                // val = ((int *)prog_code)[ip];
-                val = *(int *)(prog_code + ip);
+                val = 0;
+                memcpy(&val, (prog_code + ip), sizeof(int));
 
                 ip += 3;
 
                 PushStack(&my_spu.stk, val);
-
+                // ok
                 fprintf(stderr, "# Push imm val (%d)\n", val);
+
+                val = 0;
 
                 break;
             }
 
             case ARG_REGTR_VAL | CMD_PUSH:
             {
+                ip += sizeof(char);
 
-                fprintf(stderr, "# Push from register\n");
-
-                ip++;
-                val = prog_code[ip];
+                val = 0;
+                memcpy(&val, (prog_code + ip), sizeof(char));
 
                 PushStack(&my_spu.stk, my_spu.regs[val]);
+
+                fprintf(stderr, "# Push from register (reg_id = %d)\n", val);
 
                 val = 0;
 
@@ -112,7 +112,6 @@ int RunBin (const char * in_fname) {
 
             case CMD_POP:
             {
-
                 fprintf(stderr, "# Pop immediate number\n");
 
                 pop_err = POP_NO_ERR;
@@ -127,8 +126,9 @@ int RunBin (const char * in_fname) {
                 fprintf(stderr, "# Pop to register\n");
                 pop_err = POP_NO_ERR;
 
-                ip++;
-                val = prog_code[ip];
+                ip += sizeof(char);
+                val = 0;
+                memcpy(&val, (prog_code + ip), sizeof(char));
 
                 my_spu.regs[val] = PopStack(&my_spu.stk, &pop_err);
 
@@ -137,7 +137,6 @@ int RunBin (const char * in_fname) {
 
             case CMD_IN:
             {
-
                 fprintf(stdout, "In: please enter your variable...\n>> ");
 
                 in_var = 0;
@@ -150,7 +149,6 @@ int RunBin (const char * in_fname) {
 
             case CMD_OUT:
             {
-
                 pop_err = POP_NO_ERR;
                 fprintf(stdout, "Out:   %d\n", PopStack(&my_spu.stk, &pop_err));
 
@@ -159,7 +157,6 @@ int RunBin (const char * in_fname) {
 
             case CMD_ADD:
             {
-
                 pop_err = POP_NO_ERR;
                 val = 0;
                 val = PopStack(&my_spu.stk, &pop_err) + PopStack(&my_spu.stk, &pop_err);
@@ -172,7 +169,6 @@ int RunBin (const char * in_fname) {
 
             case CMD_SUB:
             {
-
                 pop_err = POP_NO_ERR;
                 val = 0;
                 val -= PopStack(&my_spu.stk, &pop_err);
@@ -184,10 +180,9 @@ int RunBin (const char * in_fname) {
 
             case CMD_MUL:
             {
-
                 pop_err = POP_NO_ERR;
                 val = 0;
-                val =  PopStack(&my_spu.stk, &pop_err) * PopStack(&my_spu.stk, &pop_err);
+                val = PopStack(&my_spu.stk, &pop_err) * PopStack(&my_spu.stk, &pop_err);
 
                 fprintf(stderr, "# mul: %d\n", val);
 
@@ -198,7 +193,6 @@ int RunBin (const char * in_fname) {
 
             case CMD_DIV:
             {
-
                 pop_err = POP_NO_ERR;
                 int denominator = PopStack(&my_spu.stk, &pop_err);
                 int numerator   = PopStack(&my_spu.stk, &pop_err);
@@ -213,37 +207,170 @@ int RunBin (const char * in_fname) {
 
             case ARG_IMMED_VAL | CMD_JMP:
             {
+                memcpy(&ip, (prog_code + ip + sizeof(char)), sizeof(int));
 
-                ip = prog_code[ip + 1];
+                fprintf(stderr, "# Jmp to %lu\n", ip);
 
-                fprintf(stderr, "# Jump to %lu\n", ip);
-
-                ip--; // because ip is to be increased in for-statement
+                ip -= sizeof(char); // because ip is to be increased in for-statement
 
                 break;
             }
 
             case ARG_IMMED_VAL | CMD_JA:
             {
-
-                int cmp_res = PopCmpTopStack(my_spu.stk);
+                int cmp_res = PopCmpTopStack(&my_spu.stk);
 
                 if (cmp_res > 0)
-                    {
+                {
+                    ip += sizeof(char);
 
-                        ip = prog_code[ip + 1];
+                    memcpy(&ip, (prog_code + ip), sizeof(int));
 
-                        fprintf(stderr, "# Jump to %lu\n", ip);
+                    fprintf(stderr, "# Jmp to %lu\n", ip);
 
-                        ip--; // because ip is to be increased in for-statement
-                    }
+                    ip -= sizeof(char); // because ip is to be increased in for-statement
+                }
+                else
+                {
+                    ip += sizeof(int); // skip integer pointer to a position in code
+                }
+
+                break;
+            }
+
+            case ARG_IMMED_VAL | CMD_JAE:
+            {
+                int cmp_res = PopCmpTopStack(&my_spu.stk);
+
+                if (cmp_res >= 0)
+                {
+                    ip += sizeof(char);
+
+                    memcpy(&ip, (prog_code + ip), sizeof(int));
+
+                    fprintf(stderr, "# Jmp to %lu\n", ip);
+
+                    ip -= sizeof(char); // because ip is to be increased in for-statement
+                }
+                else
+                {
+                    ip += sizeof(int); // skip integer pointer to a position in code
+                }
+
+                break;
+            }
+
+            case ARG_IMMED_VAL | CMD_JB:
+            {
+                int cmp_res = PopCmpTopStack(&my_spu.stk);
+
+                if (cmp_res < 0)
+                {
+                    ip += sizeof(char);
+
+                    memcpy(&ip, (prog_code + ip), sizeof(int));
+
+                    fprintf(stderr, "# Jmp to %lu\n", ip);
+
+                    ip -= sizeof(char); // because ip is to be increased in for-statement
+                }
+                else
+                {
+                    ip += sizeof(int); // skip integer pointer to a position in code
+                }
+
+                break;
+            }
+
+            case ARG_IMMED_VAL | CMD_JBE:
+            {
+                int cmp_res = PopCmpTopStack(&my_spu.stk);
+
+                if (cmp_res <= 0)
+                {
+                    ip += sizeof(char);
+
+                    memcpy(&ip, (prog_code + ip), sizeof(int));
+
+                    fprintf(stderr, "# Jmp to %lu\n", ip);
+
+                    ip -= sizeof(char); // because ip is to be increased in for-statement
+                }
+                else
+                {
+                    ip += sizeof(int); // skip integer pointer to a position in code
+                }
+
+                break;
+            }
+
+            case ARG_IMMED_VAL | CMD_JE:
+            {
+                int cmp_res = PopCmpTopStack(&my_spu.stk);
+
+                if (cmp_res == 0)
+                {
+                    ip += sizeof(char);
+
+                    memcpy(&ip, (prog_code + ip), sizeof(int));
+
+                    fprintf(stderr, "# Jmp to %lu\n", ip);
+
+                    ip -= sizeof(char); // because ip is to be increased in for-statement
+                }
+                else
+                {
+                    ip += sizeof(int); // skip integer pointer to a position in code
+                }
+
+                break;
+            }
+
+            case ARG_IMMED_VAL | CMD_JNE:
+            {
+                int cmp_res = PopCmpTopStack(&my_spu.stk);
+
+                if (cmp_res != 0)
+                {
+                    ip += sizeof(char);
+
+                    memcpy(&ip, (prog_code + ip), sizeof(int));
+
+                    fprintf(stderr, "# Jmp to %lu\n", ip);
+
+                    ip -= sizeof(char); // because ip is to be increased in for-statement
+                }
+                else
+                {
+                    ip += sizeof(int); // skip integer pointer to a position in code
+                }
+
+                break;
+            }
+
+            case ARG_IMMED_VAL | CMD_JF:
+            {
+                // todo jump on friday
+                if (0)
+                {
+                    ip += sizeof(char);
+
+                    memcpy(&ip, (prog_code + ip), sizeof(int));
+
+                    fprintf(stderr, "# Jmp to %lu\n", ip);
+
+                    ip -= sizeof(char); // because ip is to be increased in for-statement
+                }
+                else
+                {
+                    ip += sizeof(int); // skip integer pointer to a position in code
+                }
 
                 break;
             }
 
             default:
             {
-
                 fprintf(stderr, "# Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
 
                 return 1;
@@ -260,21 +387,21 @@ int RunBin (const char * in_fname) {
     return 0;
 }
 
-Elem_t PopCmpTopStack(stack stk) {
+Elem_t PopCmpTopStack(stack * stk_ptr) {
 
     Elem_t val_top = 0;
     Elem_t val_below = 0;
 
     enum POP_OUT pop_err = POP_NO_ERR;
 
-    val_top = PopStack(&stk, &pop_err);
+    val_top = PopStack(stk_ptr, &pop_err);
 
     if (pop_err != POP_NO_ERR) {
         fprintf(stderr, "Stack Error!\n");
         abort();
     }
 
-    val_below = PopStack(&stk, &pop_err);
+    val_below = PopStack(stk_ptr, &pop_err);
 
     if (pop_err != POP_NO_ERR) {
         fprintf(stderr, "Stack Error!\n");
@@ -282,23 +409,6 @@ Elem_t PopCmpTopStack(stack stk) {
     }
 
     return val_below - val_top;
-}
-
-int FixEndianess(int num) {
-
-    char byte1 = (num & 0xff'00'00'00) >> 3*8;
-    char byte2 = (num & 0x00'ff'00'00) >> 2*8;
-    char byte3 = (num & 0x00'00'ff'00) >> 1*8;
-    char byte4 = (num & 0x00'00'00'ff) >> 0*8;
-
-    int res = 0;
-
-    res |= byte4 << 3*8;
-    res |= byte3 << 2*8;
-    res |= byte2 << 1*8;
-    res |= byte1 << 0*8;
-
-    return res;
 }
 
  int DivideInts(int numerator, int denominator) {

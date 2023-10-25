@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "commands.h"
 
@@ -46,116 +47,134 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
 
     int val = 0;
 
-    for (size_t ip = 0; ip < n_bytes; ip++) {
+    for (size_t ip = 0; ip < n_bytes; ip += sizeof(char)) {
 
         switch (prog_code[ip]) {
 
             case CMD_HLT:
-                {
-
+            {
                 fprintf(fout, "hlt\n");
 
-                break;
-                }
+                return 0;
+            }
 
             case ARG_IMMED_VAL | CMD_PUSH:
-                {
-
+            {
                 ip += 1;
-                val = ((int *)prog_code)[ip];
-                ip += 3;
+
+                memcpy(&val, (prog_code + ip), sizeof(int));
+
+                ip+=3;
 
                 fprintf(fout, "push %d\n", val);
 
                 break;
-                }
+            }
 
             case ARG_REGTR_VAL | CMD_PUSH:
-                {
-
+            {
                 ip++;
-                val = prog_code[ip];
 
-                fprintf(fout, "push %d\n", val);
+                memcpy(&val, (prog_code + ip), sizeof(char));
+
+                fprintf(fout, "push r%cx\n", 'a' + val);
 
                 break;
-                }
+            }
 
             case CMD_POP:
-                {
-
+            {
                 fprintf(fout, "pop\n");
 
                 break;
-                }
+            }
 
             case ARG_REGTR_VAL | CMD_POP:
-                {
-
+            {
                 ip++;
-                val = prog_code[ip];
-                fprintf(fout, "pop %d\n", val);
+
+                fprintf(fout, "pop r%cx\n", 'a' + val);
 
                 break;
-                }
+            }
 
             case CMD_IN:
-                {
-
+            {
                 fprintf(fout, "in\n");
 
                 break;
-                }
+            }
 
             case CMD_OUT:
-                {
-
+            {
                 fprintf(fout, "out\n");
 
                 break;
-                }
+            }
 
             case CMD_ADD:
-                {
-
+            {
                 fprintf(fout, "add\n");
 
                 break;
-                }
+            }
 
             case CMD_SUB:
-                {
-
+            {
                 fprintf(fout, "sub\n");
 
                 break;
-                }
+            }
 
             case CMD_MUL:
-                {
-
+            {
                 fprintf(fout, "mul\n");
 
                 break;
-                }
+            }
 
             case CMD_DIV:
-                {
-
+            {
                 fprintf(fout, "div\n");
 
                 break;
-                }
+            }
 
-            default:
-                {
-                fprintf(fout, "DISASM CMD NOT FOUND (CODE = %d)\n", prog_code[ip]);
+            case ARG_IMMED_VAL | CMD_JMP:
+            {
+                ip += 1;
+
+                memcpy(&val, (prog_code + ip), sizeof(int));
+
+                ip+=3;
+
+                fprintf(fout, "jmp %d\n", val);
 
                 break;
-                }
+            }
+
+            case ARG_IMMED_VAL | CMD_JA:
+            {
+
+                ip += 1;
+
+                memcpy(&val, (prog_code + ip), sizeof(int));
+
+                ip+=3;
+
+                fprintf(fout, "ja %d\n", val);
+
+                break;
+            }
+            default:
+            {
+                fprintf(stderr, "# DISASM: Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
+
+                return 1;
+            }
         }
 
-        prog_code++;
+        val = 0;
     }
 
     fclose(fout);
