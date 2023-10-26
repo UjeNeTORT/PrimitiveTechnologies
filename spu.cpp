@@ -9,6 +9,9 @@
 #include "./text_processing_lib/text_buf.h"
 
 static int RunBin     (const char * in_fname);
+static int SPUCtor    (SPU * spu, int stack_capacity, int regs_num, int ram_size);
+static int SPUDtor    (SPU * spu);
+static int GetArg     (const char * prog_code, size_t * ip, int regs[], int RAM[]);
 
 static Elem_t PopCmpTopStack (stack * stk_ptr);
 static int    DivideInts     (int numerator, int denominator);
@@ -37,7 +40,7 @@ int RunBin (const char * in_fname) {
 
     SPU my_spu = {};
 
-    CtorStack(&my_spu.stk, SPU_STK_CAPA);
+    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_REGS_NUM, SPU_RAM_SIZE);
 
     //=======================================================================================================
 
@@ -86,7 +89,7 @@ int RunBin (const char * in_fname) {
                 ip += 3;
 
                 PushStack(&my_spu.stk, val);
-                // ok
+
                 fprintf(stderr, "# Push imm val (%d)\n", val);
 
                 val = 0;
@@ -109,6 +112,17 @@ int RunBin (const char * in_fname) {
 
                 break;
             }
+
+            case ARG_MEMRY_VAL | CMD_PUSH:
+            {
+                //todo
+            }
+            // case CMD_PUSH: // fresh fucntion using GetArg
+            // {
+            //     int arg = GetArg(prog_code, &ip, my_spu.regs, my_spu.RAM);
+            //     PushStack(&my_spu.stk, arg);
+            //     fprintf(stderr, "# Push GetArg -> %d\n", arg);
+            // }
 
             case CMD_POP:
             {
@@ -382,9 +396,83 @@ int RunBin (const char * in_fname) {
     }
 
     free(prog_code_init);
-    DtorStack(&my_spu.stk);
+    SPUDtor(&my_spu);
 
     return 0;
+}
+
+//! didnot debug
+int GetArg (const char * prog_code, size_t * ip, int regs[], int RAM[])
+{
+    assert(prog_code);
+    assert(ip);
+    assert(regs);
+    assert(RAM);
+
+    char cmd = 0;
+    memcpy(&cmd, (prog_code + *ip), sizeof(char));
+
+    (*ip) += sizeof(char);
+
+    int res     = 0;
+    int tmp_res = 0;
+
+    if (cmd & ARG_IMMED_VAL)
+    {
+        memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
+        res += tmp_res;
+
+        tmp_res = 0;
+
+        (*ip) += sizeof(int);
+    }
+
+    if (cmd & ARG_REGTR_VAL)
+    {
+        memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
+        res += regs[tmp_res];
+
+        tmp_res = 0;
+
+        (*ip) += sizeof(char);
+    }
+
+    if (cmd & ARG_MEMRY_VAL)
+    {
+        res = RAM[res];
+    }
+
+    return res;
+}
+
+int SPUCtor (SPU * spu, int stack_capacity, int regs_num, int ram_size)
+{
+    assert(spu);
+
+    if (CtorStack(&(spu->stk), SPU_STK_CAPA) != CTOR_NO_ERR)
+    {
+        fprintf(stderr, "Stack Constructor returned error (TODO TODO TODO)\n"); // todo
+        abort();                                                                // aborting is justified because stack is the "kernel" of spu
+    }
+
+    spu->RAM = (int *) calloc(SPU_RAM_SIZE, sizeof(int)); //? why does memory leak
+    if (/*validateptr*/spu->RAM == NULL) // todo pointer validator
+    {
+        fprintf(stderr, "Unable to allocate memory for RAM\n");
+        abort();                        // todo return enum. What if we dont use RAM in asm code? program shouldnt fall
+    }
+
+    return 0;
+}
+
+int SPUDtor (SPU * spu)
+{
+    assert(spu);
+
+    DtorStack(&spu->stk);
+
+    memset(spu->RAM, 0xcc, SPU_RAM_SIZE * sizeof(int));
+    free(spu->RAM);
 }
 
 Elem_t PopCmpTopStack(stack * stk_ptr) {

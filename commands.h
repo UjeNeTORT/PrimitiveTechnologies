@@ -4,12 +4,13 @@
 #include <stdio.h>
 
 const size_t MAX_CMD = 100;
-const size_t MAX_LBLS = 5; // random number
+const size_t MAX_LBLS = 5;   // random number
 
 const char * BIN_FILENAME = "translated.bin";
 
 const int ARG_IMMED_VAL = 0b0010'0000;
 const int ARG_REGTR_VAL = 0b0100'0000;
+const int ARG_MEMRY_VAL = 0b1000'0000;
 
 struct Label {
 
@@ -35,7 +36,7 @@ enum CMDS {
     CMD_JBE  = 13,
     CMD_JE   = 14,
     CMD_JNE  = 15,
-    CMD_JF  = 16,
+    CMD_JF   = 16,
 };
 
 #endif // COMMANDS_H

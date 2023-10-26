@@ -8,8 +8,6 @@
 #include "commands.h"
 #include "./text_processing_lib/text_buf.h"
 
-#define printarr(stream, arr, arr_size, el_fmt, ...) // todo
-
 static int  LabelCtor     (Label labels[], int n_lbls, int byte_pos, const char * name);
 static int  LabelDtor     (Label labels[], int n_lbls);
 static int  LabelFind     (Label labels[], int n_lbls, char * token);
@@ -44,7 +42,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
     assert(fin_name);
     assert(fout_name);
 
-    //==================== READ TEXT FROM PROGRAM FILE AND SPLIT IT INTO LINES ==========================
+    //============= READ TEXT FROM PROGRAM FILE AND SPLIT IT INTO LINES ==============
 
     char *  in_buf  = NULL;
     char ** in_text = NULL; // program text split into lines
@@ -52,6 +50,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
     size_t n_lines = ReadText(fin_name, &in_text, &in_buf);
 
     //==================== PREPROCESS EACH LINE OF THE TEXT ==========================
+
     PreprocessProgram(in_text, n_lines);
 
     //============= PUT TEXT IN ARRAY OF WORDS SEPEARATED BY BLANKS ==================
@@ -60,11 +59,19 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
 
     int n_tokens = TokenizeText(in_text, n_lines, text_tokenized);
 
+    //========================== CREATE BYTECODE ARRAY ===============================
+
     char * prog_code = (char *) calloc(n_tokens, sizeof(int));
+
+    //====================== TRANSLATE TEXT INTO BYTE-CODES ==========================
 
     int n_bytes = TranslateProgram(text_tokenized, prog_code);
 
+    //========================== OUTPUT TO BINARY FILE ===============================
+
     WriteCodeBin("translated.bin", prog_code, n_bytes); // TODO filename to const
+
+    //====================== FREE ALL THE ALLOCATED MEMORY ===========================
 
     // TODO to func
     free(prog_code);
@@ -135,7 +142,7 @@ int TranslateProgram (char * text, char * prog_code) {
                 {
                     if (!CorrectRegId(reg_id))
                     {
-                        fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", token);
+                        fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", temp_token);
                         abort();
                     }
 
@@ -146,7 +153,7 @@ int TranslateProgram (char * text, char * prog_code) {
                 }
                 else if (sscanf(text, "%d %n", &arg, &symbs) == 1)
                 {
-                    text += symbs; // "123" -> skipping 3 bytes
+                    text += symbs;
                     n_bytes += sizeof(int);
 
                     EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_PUSH, arg);
@@ -165,7 +172,7 @@ int TranslateProgram (char * text, char * prog_code) {
                 {
                     if (!CorrectRegId(reg_id))
                     {
-                        fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", token);
+                        fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", temp_token);
                         abort();
                     }
 
