@@ -32,7 +32,7 @@ int main() { //todo args cmd line
                     "# Working...\n"
                     "# If something is wrong it will call you looser, dont cry\n\n");
 
-    AssembleMath("ex1.txt", "ex1_translated.txt");
+    AssembleMath("ex4.txt", "ex4_translated.txt");
 
     return 0;
 }
@@ -307,6 +307,37 @@ int TranslateProgram (char * text, char * prog_code) {
                     LabelCtor(labels, n_lbls, n_bytes, (const char *) token);
                     n_lbls++;
                 }
+            }
+            else if (strcmp(token, "call") == 0)
+            {
+                char lbl_name[MAX_CMD] = "";
+
+                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
+                {
+                    fprintf(stderr, "Syntax Error! No label to call given!\n");
+                    abort();
+                }
+
+                text += symbs;
+
+                int cmd_ptr = -1;
+
+                if (n_run == RUN_LBL_UPD)
+                {
+                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
+
+                    if (cmd_ptr == -1)
+                    {
+                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
+                        abort();
+                    }
+                }
+
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_CALL, cmd_ptr);
+            }
+            else if (strcmp(token , "ret") == 0)
+            {
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_RET);
             }
             else if (strcmp(token, "jmp") == 0)
             {

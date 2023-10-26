@@ -38,6 +38,8 @@ enum CMDS {
     CMD_JE   = 14,
     CMD_JNE  = 15,
     CMD_JF   = 16,
+    CMD_CALL = 17,
+    CMD_RET  = 18,
 };
 
 // // ??
