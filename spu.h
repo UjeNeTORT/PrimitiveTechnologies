@@ -6,13 +6,16 @@
 #include "./stacklib/stack.h"
 
 const int SPU_STK_CAPA = 100;
-const int SPU_REGS_NUM = 4;
+const int SPU_REGS_NUM = 4;   // because i want 4
+const int SPU_RAM_SIZE = 100; // for graphics
 
 struct SPU {
 
     int regs[SPU_REGS_NUM];
 
     stack stk;
+
+    int * RAM;
 
 };
 
