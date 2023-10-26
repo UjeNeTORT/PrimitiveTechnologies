@@ -120,7 +120,7 @@ int TranslateProgram (char * text, char * prog_code) {
         text = text_init;
         n_bytes = 0;
 
-        while (*text)
+        for (n_bytes = 0; *text; n_bytes += sizeof(char))
         {
             if (sscanf(text, "%s %n", token, &symbs) <= 0)
                 break;
@@ -461,7 +461,6 @@ int TranslateProgram (char * text, char * prog_code) {
             memset(token, 0, MAX_CMD); // clean memory in token // todo catch errors
             memset(temp_token, 0, MAX_CMD);
 
-            n_bytes += sizeof(char); //*
         }
     }
     LabelDtor(labels, n_lbls);
@@ -677,7 +676,7 @@ int LabelCtor (Label labels[], int n_lbls, int byte_pos, const char * name)
     return 0; // todo return enum
 }
 
-int LabelDtor(Label labels[], int n_lbls) {
+int LabelDtor (Label labels[], int n_lbls) {
 
     for (int i = 0; i < n_lbls; i++)
     {
