@@ -11,9 +11,12 @@
 static int  LabelCtor     (Label labels[], int n_lbls, int byte_pos, const char * name);
 static int  LabelDtor     (Label labels[], int n_lbls);
 static int  LabelFind     (Label labels[], int n_lbls, char * token);
-static int  EmitCodeArg   (char ** prog_code, char code, int val);
-static int  EmitCodeReg   (char ** prog_code, char code, char reg_id);
-static int  EmitCodeNoArg (char ** prog_code, char code);
+
+static int  EmitCodeArg   (char * prog_code, int * n_bytes, char code, int val);
+static int  EmitCodeReg   (char * prog_code, int * n_bytes, char code, char reg_id);
+static int  EmitCodeSum   (char * prog_code, int * n_bytes, char code, int val, char reg_id);
+static int  EmitCodeNoArg (char * prog_code, int * n_bytes, char code);
+
 static int  TokenizeText  (char ** text_ready, size_t n_lines, char * text_tokenized);
 static char ScanRegId     (const char * token);
 static int  CorrectRegId  (int reg_id);
@@ -29,7 +32,7 @@ int main() { //todo args cmd line
                     "# Working...\n"
                     "# If something is wrong it will call you looser, dont cry\n\n");
 
-    AssembleMath("ex2.txt", "ex2_translated.txt");
+    AssembleMath("ex1.txt", "ex1_translated.txt");
 
     return 0;
 }
@@ -37,7 +40,7 @@ int main() { //todo args cmd line
 /**
  * @brief change commands from fin_name to their codes (from usr_cmd) fout_name. cmd_arr of usr_cmd structs is formed using ParseCmdNames func
 */
-enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
+AsmResType AssembleMath (const char * fin_name, const char * fout_name) {
 
     assert(fin_name);
     assert(fout_name);
@@ -51,7 +54,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
 
     //==================== PREPROCESS EACH LINE OF THE TEXT ==========================
 
-    PreprocessProgram(in_text, n_lines);
+    DecommentProgram(in_text, n_lines);
 
     //============= PUT TEXT IN ARRAY OF WORDS SEPEARATED BY BLANKS ==================
 
@@ -69,7 +72,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
 
     //========================== OUTPUT TO BINARY FILE ===============================
 
-    WriteCodeBin("translated.bin", prog_code, n_bytes); // TODO filename to const
+    WriteCodeBin(BIN_FILENAME, prog_code, n_bytes);
 
     //====================== FREE ALL THE ALLOCATED MEMORY ===========================
 
@@ -82,7 +85,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
     return ASM_OUT_NO_ERR;
 }
 
-int PreprocessProgram (char ** text, size_t n_lines) {
+int DecommentProgram (char ** text, size_t n_lines) {
 
     assert(text);
 
@@ -115,7 +118,7 @@ int TranslateProgram (char * text, char * prog_code) {
     int n_bytes = 0;
 
     char reg_id = 0;
-    int  arg    = 0;
+    int  val    = 0;
     int  symbs  = 0;
 
     char * text_init = text;
@@ -127,7 +130,7 @@ int TranslateProgram (char * text, char * prog_code) {
         text = text_init;
         n_bytes = 0;
 
-        for (n_bytes = 0; *text; n_bytes += sizeof(char))
+        while (*text)
         {
             if (sscanf(text, "%s %n", token, &symbs) <= 0)
                 break;
@@ -136,83 +139,162 @@ int TranslateProgram (char * text, char * prog_code) {
 
             if (strcmp(token, "push") == 0)
             {
-                sscanf(text, "%s %n", &temp_token, &symbs);
-
-                if ((reg_id = ScanRegId(temp_token)) != -1)
+                if (sscanf(text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
+                    sscanf(text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
                 {
+                    reg_id -= 'a';
                     if (!CorrectRegId(reg_id))
                     {
-                        fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", temp_token);
+                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
                         abort();
                     }
 
-                    text += strlen(temp_token);
-                    n_bytes += sizeof(char);
+                    EmitCodeSum(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | ARG_REGTR_VAL | CMD_PUSH, val, reg_id);
 
-                    EmitCodeReg(&prog_code, ARG_REGTR_VAL | CMD_PUSH, reg_id);
-                }
-                else if (sscanf(text, "%d %n", &arg, &symbs) == 1)
-                {
                     text += symbs;
-                    n_bytes += sizeof(int);
+                }
+                else if (sscanf(text, " [ r%cx ] %n", &reg_id, &symbs) == 1)
+                {
+                    reg_id -= 'a';
+                    if (!CorrectRegId(reg_id))
+                    {
+                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
+                        abort();
+                    }
 
-                    EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_PUSH, arg);
+                    EmitCodeReg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | CMD_PUSH, reg_id);
+
+                    text += symbs;
+                }
+                else if (sscanf(text, " [ %d ] %n", &val, &symbs) == 1)
+                {
+
+                    EmitCodeArg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | CMD_PUSH, val);
+
+                    text += symbs;
+                }
+                else if (sscanf(text, "r%cx + %d %n", &reg_id, &val, &symbs) == 2 ||
+                         sscanf(text, "%d + r%cx %n", &val, &reg_id, &symbs) == 2)
+                {
+
+                    reg_id -= 'a';
+                    if (!CorrectRegId(reg_id))
+                    {
+                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
+                        abort();
+                    }
+
+                    EmitCodeSum(prog_code, &n_bytes, ARG_IMMED_VAL | ARG_REGTR_VAL | CMD_PUSH, val, reg_id);
+
+                    text += symbs;
+                }
+                else if (sscanf(text, "r%cx %n", &reg_id, &symbs) == 1)
+                {
+                    reg_id -= 'a';
+                    if (!CorrectRegId(reg_id))
+                    {
+                        // assert(!"Syntax Error!");
+                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
+                        abort();
+                    }
+
+                    EmitCodeReg(prog_code, &n_bytes, ARG_REGTR_VAL | CMD_PUSH, reg_id);
+
+                    text += symbs;
+                }
+                else if (sscanf(text, "%d %n", &val, &symbs) == 1)
+                {
+                    EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_PUSH, val);
+
+                    text += symbs;
                 }
                 else
                 {
-                    fprintf(stderr, "# SyntaxError! No argument after \"push\"\n");
+                    fprintf(stderr, "Syntax Error! No command after \"push\" matches its argument type\n");
                     abort();
                 }
             }
-            else if (strcmp(token, "pop") == 0) {
-
-                sscanf(text, "%s %n", &temp_token, &symbs);
-
-                if ((reg_id = ScanRegId(temp_token)) != -1)
+            else if (strcmp(token, "pop") == 0)
+            {
+                if (sscanf(text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
+                    sscanf(text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
                 {
+                    reg_id -= 'a';
                     if (!CorrectRegId(reg_id))
                     {
-                        fprintf(stderr, "SyntaxError! Register \"%s\" is not allowed!\n", temp_token);
+                        fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed! Get rekt! hahahaah\n", reg_id + 'a', reg_id + 'a');
                         abort();
                     }
 
-                    text += strlen(temp_token);
-                    n_bytes += sizeof(char);
+                    EmitCodeSum(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | ARG_IMMED_VAL | CMD_POP, val, reg_id);
 
-                    EmitCodeReg(&prog_code, ARG_REGTR_VAL | CMD_POP, reg_id);
+                    text += symbs;
+                }
+                else if (sscanf(text, "[ r%cx ] %n", &reg_id, &symbs) == 1)
+                {
+                    reg_id -= 'a';
+                    if (!CorrectRegId(reg_id))
+                    {
+                        fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed! Get rekt! hahahaah\n", reg_id + 'a', reg_id + 'a');
+                        abort();
+                    }
+
+                    EmitCodeReg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | CMD_POP, reg_id);
+
+                    text += symbs;
+                }
+                else if (sscanf(text, "[ %d ] %n", &val, &symbs) == 1)
+                {
+                    EmitCodeArg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | CMD_POP, val);
+
+                    text += symbs;
+                }
+                else if (sscanf(text, "r%cx %n", &reg_id, &symbs) == 1)
+                {
+                    reg_id -= 'a';
+                    if (!CorrectRegId(reg_id))
+                    {
+                        fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed! Get rekt! hahahaah\n", reg_id + 'a', reg_id + 'a');
+                        abort();
+                    }
+
+                    EmitCodeReg(prog_code, &n_bytes, ARG_REGTR_VAL | CMD_POP, reg_id);
+
+                    text += symbs;
                 }
                 else
                 {
-                    EmitCodeNoArg(&prog_code, CMD_POP);
+                    EmitCodeNoArg(prog_code, &n_bytes, CMD_POP);
                 }
+
                 }
             else if (strcmp(token, "hlt") == 0)
             {
-                EmitCodeNoArg(&prog_code, CMD_HLT);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_HLT);
             }
             else if (strcmp(token, "in")  == 0)
             {
-                EmitCodeNoArg(&prog_code, CMD_IN);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_IN);
             }
             else if (strcmp(token, "out") == 0)
             {
-                EmitCodeNoArg(&prog_code, CMD_OUT);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_OUT);
             }
             else if (strcmp(token, "add") == 0)
             {
-                EmitCodeNoArg(&prog_code, CMD_ADD);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_ADD);
             }
             else if (strcmp(token, "sub") == 0)
             {
-                EmitCodeNoArg(&prog_code, CMD_SUB);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_SUB);
             }
             else if (strcmp(token, "mul") == 0)
             {
-                EmitCodeNoArg(&prog_code, CMD_MUL);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_MUL);
             }
             else if (strcmp(token, "div") == 0)
             {
-                EmitCodeNoArg(&prog_code, CMD_DIV);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_DIV);
             }
             else if (IsLabel(token))
             {
@@ -225,8 +307,6 @@ int TranslateProgram (char * text, char * prog_code) {
                     LabelCtor(labels, n_lbls, n_bytes, (const char *) token);
                     n_lbls++;
                 }
-
-                n_bytes -= sizeof(char); // by default it treats labels as command or argument and increases number of bytes, so we need to decrease it when we figured out it is label
             }
             else if (strcmp(token, "jmp") == 0)
             {
@@ -252,9 +332,8 @@ int TranslateProgram (char * text, char * prog_code) {
                         abort();
                     }
                 }
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JMP, cmd_ptr);
 
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JMP, cmd_ptr);
             }
             else if (strcmp(token, "ja")  == 0)
             {
@@ -281,9 +360,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     }
                 }
 
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JA, cmd_ptr);
-
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JA, cmd_ptr);
             }
             else if (strcmp(token, "jae") == 0)
             {
@@ -310,9 +387,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     }
                 }
 
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JAE, cmd_ptr);
-
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JAE, cmd_ptr);
             }
             else if (strcmp(token, "jb")  == 0)
             {
@@ -339,9 +414,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     }
                 }
 
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JB, cmd_ptr);
-
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JB, cmd_ptr);
             }
             else if (strcmp(token, "jbe") == 0)
             {
@@ -368,9 +441,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     }
                 }
 
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JBE, cmd_ptr);
-
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JBE, cmd_ptr);
             }
             else if (strcmp(token, "je")  == 0)
             {
@@ -397,9 +468,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     }
                 }
 
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JE, cmd_ptr);
-
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JE, cmd_ptr);
             }
             else if (strcmp(token, "jne") == 0)
             {
@@ -426,9 +495,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     }
                 }
 
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JNE, cmd_ptr);
-
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JNE, cmd_ptr);
             }
             else if (strcmp(token, "jf")  == 0)
             {
@@ -455,9 +522,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     }
                 }
 
-                EmitCodeArg(&prog_code, ARG_IMMED_VAL | CMD_JF, cmd_ptr);
-
-                n_bytes += sizeof(int);
+                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JF, cmd_ptr);
             }
             else
         {
@@ -532,6 +597,7 @@ int TokenizeText (char ** text, size_t n_lines, char * text_tokenized) {
 
     for (size_t line = 0; line < n_lines; line++) {
 
+        // strcpy
         line_size = strlen(text[line]);
 
         strncpy(text_tokenized, text[line], line_size);
@@ -562,40 +628,55 @@ int TokenizeText (char ** text, size_t n_lines, char * text_tokenized) {
     return n_tokens;
 }
 
-static int EmitCodeArg (char ** prog_code_ptr, char code, int val) {
+static int EmitCodeArg (char * prog_code, int * n_bytes, char code, int val)
+{
+    assert (prog_code);
 
-    assert (prog_code_ptr);
-    assert (*prog_code_ptr);
+    memcpy((prog_code + *n_bytes), &code, sizeof(char)); // emit cmd code
+    *n_bytes += sizeof(char);
 
-    memcpy(*prog_code_ptr, &code, sizeof(char));
-    *prog_code_ptr += sizeof(char);
-
-    memcpy(*prog_code_ptr, &val, sizeof(int));
-    *prog_code_ptr += sizeof(int);
-
-    return 0;
-}
-
-static int EmitCodeReg (char ** prog_code_ptr, char code, char reg_id) {
-
-    assert(prog_code_ptr);
-
-    memcpy(*prog_code_ptr, &code, sizeof(char));
-    *prog_code_ptr += sizeof(char);
-
-    memcpy(*prog_code_ptr, &reg_id, sizeof(char));
-    *prog_code_ptr += sizeof(char);
+    memcpy((prog_code + *n_bytes), &val, sizeof(int));   // emit immed val
+    *n_bytes += sizeof(int);
 
     return 0;
 }
 
-static int EmitCodeNoArg (char ** prog_code_ptr, char code) {
+static int EmitCodeReg (char * prog_code, int * n_bytes, char code, char reg_id) {
 
-    assert (prog_code_ptr);
-    assert (*prog_code_ptr);
+    assert(prog_code);
 
-    memcpy(*prog_code_ptr, &code, sizeof(char));
-    *prog_code_ptr += sizeof(char);
+    memcpy((prog_code + *n_bytes), &code, sizeof(char)); // emit cmd code
+    *n_bytes += sizeof(char);
+
+    memcpy((prog_code + *n_bytes), &reg_id, sizeof(char)); // emit reg_id
+    *n_bytes += sizeof(char);
+
+    return 0;
+}
+
+// Write
+static int EmitCodeSum (char * prog_code, int * n_bytes, char code, int val, char reg_id)
+{
+    assert(prog_code);
+
+    memcpy((prog_code + *n_bytes), &code, sizeof(char));   // emit cmd code
+    *n_bytes += sizeof(char);
+
+    memcpy((prog_code + *n_bytes), &val, sizeof(int));     // emit immed val
+    *n_bytes += sizeof(int);
+
+    memcpy((prog_code + *n_bytes), &reg_id, sizeof(char)); // emit reg_id
+    *n_bytes += sizeof(char);
+
+    return 0;
+}
+
+static int EmitCodeNoArg (char * prog_code, int * n_bytes, char code) {
+
+    assert (prog_code);
+
+    memcpy((prog_code + *n_bytes), &code, sizeof(char)); // emit cmd code
+    *n_bytes += sizeof(char);
 
     return 0;
 }
