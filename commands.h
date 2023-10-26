@@ -4,23 +4,24 @@
 #include <stdio.h>
 
 const size_t MAX_CMD = 100;
-const size_t MAX_LBLS = 5;   // random number
+const size_t MAX_LBLS = 50; // random number
 
 const char * BIN_FILENAME = "translated.bin";
 
-const int ARG_IMMED_VAL = 0b0010'0000;
-const int ARG_REGTR_VAL = 0b0100'0000;
-const int ARG_MEMRY_VAL = 0b1000'0000;
+const char OPCODE_MSK    = (char) 0b0001'1111;
+const char ARG_TYPE_MSK  = (char) 0b1110'0000;
+const char ARG_IMMED_VAL = (char) 0b0010'0000;
+const char ARG_REGTR_VAL = (char) 0b0100'0000;
+const char ARG_MEMRY_VAL = (char) 0b1000'0000;
 
 struct Label {
 
     int    cmd_ptr;
     char * name;
-
 };
 
 enum CMDS {
-    CMD_HLT  = -1,
+    CMD_HLT  = 0b0001'1111,
     CMD_PUSH =  1,
     CMD_POP  =  2,
     CMD_IN   =  3,
@@ -38,5 +39,16 @@ enum CMDS {
     CMD_JNE  = 15,
     CMD_JF   = 16,
 };
+
+// // ??
+// static int check_cmds()
+// {
+//     switch(0)
+//     {
+//         // #define DEF_CMD(code) case code:
+//         case 0:
+//         case 0:
+//     }
+// }
 
 #endif // COMMANDS_H

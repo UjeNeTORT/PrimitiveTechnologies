@@ -11,7 +11,10 @@ const int SPU_RAM_SIZE = 100; // for graphics
 
 struct SPU {
 
-    int regs[SPU_REGS_NUM];
+    // general purpose
+    // also need instruction pointer register
+    int gp_regs[SPU_REGS_NUM];
+
 
     stack stk;
 

@@ -32,7 +32,7 @@ int main() { //todo args cmd line
                     "# Working...\n"
                     "# If something is wrong it will call you looser, dont cry\n\n");
 
-    AssembleMath("ex2.txt", "ex2_translated.txt");
+    AssembleMath("ex1.txt", "ex1_translated.txt");
 
     return 0;
 }
@@ -40,7 +40,7 @@ int main() { //todo args cmd line
 /**
  * @brief change commands from fin_name to their codes (from usr_cmd) fout_name. cmd_arr of usr_cmd structs is formed using ParseCmdNames func
 */
-enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
+AsmResType AssembleMath (const char * fin_name, const char * fout_name) {
 
     assert(fin_name);
     assert(fout_name);
@@ -54,7 +54,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
 
     //==================== PREPROCESS EACH LINE OF THE TEXT ==========================
 
-    PreprocessProgram(in_text, n_lines);
+    DecommentProgram(in_text, n_lines);
 
     //============= PUT TEXT IN ARRAY OF WORDS SEPEARATED BY BLANKS ==================
 
@@ -72,7 +72,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
 
     //========================== OUTPUT TO BINARY FILE ===============================
 
-    WriteCodeBin("translated.bin", prog_code, n_bytes); // TODO filename to const
+    WriteCodeBin(BIN_FILENAME, prog_code, n_bytes);
 
     //====================== FREE ALL THE ALLOCATED MEMORY ===========================
 
@@ -85,7 +85,7 @@ enum ASM_OUT AssembleMath (const char * fin_name, const char * fout_name) {
     return ASM_OUT_NO_ERR;
 }
 
-int PreprocessProgram (char ** text, size_t n_lines) {
+int DecommentProgram (char ** text, size_t n_lines) {
 
     assert(text);
 
@@ -193,6 +193,7 @@ int TranslateProgram (char * text, char * prog_code) {
                     reg_id -= 'a';
                     if (!CorrectRegId(reg_id))
                     {
+                        // assert(!"Syntax Error!");
                         fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
                         abort();
                     }
@@ -596,6 +597,7 @@ int TokenizeText (char ** text, size_t n_lines, char * text_tokenized) {
 
     for (size_t line = 0; line < n_lines; line++) {
 
+        // strcpy
         line_size = strlen(text[line]);
 
         strncpy(text_tokenized, text[line], line_size);
@@ -652,6 +654,7 @@ static int EmitCodeReg (char * prog_code, int * n_bytes, char code, char reg_id)
     return 0;
 }
 
+// Write
 static int EmitCodeSum (char * prog_code, int * n_bytes, char code, int val, char reg_id)
 {
     assert(prog_code);
