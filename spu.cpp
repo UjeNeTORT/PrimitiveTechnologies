@@ -576,7 +576,7 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
         abort();
     }
 
-    return val_below - val_top;
+    return val_top - val_below;
 }
 
  int DivideInts(int numerator, int denominator) {

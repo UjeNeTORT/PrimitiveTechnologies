@@ -32,7 +32,7 @@ int main() { //todo args cmd line
                     "# Working...\n"
                     "# If something is wrong it will call you looser, dont cry\n\n");
 
-    AssembleMath("ex4.txt", "ex4_translated.txt");
+    AssembleMath("ex5.txt", "ex5_translated.txt");
 
     return 0;
 }
@@ -557,7 +557,7 @@ int TranslateProgram (char * text, char * prog_code) {
             }
             else
         {
-            fprintf(stderr, "# Syntax error! No command \"%s\" found. Bye bye looser!\n", token);
+            fprintf(stderr, "# Syntax error! No command \"%s\" (%d) found. Bye bye looser!\n", token, n_bytes);
             abort();
         }
 
@@ -765,12 +765,12 @@ int IsLabel(const char * token)
         {
             token++;
 
-            while (isalnum(*token)) token++;
+            while (isalnum(*token) || *token == '_') token++;
 
-        if (token == col_pos)
-            return 1;
+            if (token == col_pos)
+                return 1;
 
-        return 0;
+            return 0;
         }
     }
 
