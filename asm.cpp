@@ -23,16 +23,25 @@ static int  CorrectRegId  (int reg_id);
 
 static int IsLabel (const char * token);
 
-const int MAX_REGS = 20;
+const int MAX_REGS = 26; //* duplicate, register is to be checked in processor
 
-int main() { //todo args cmd line
+int main(int argc, char * argv[]) {
 
     fprintf(stdout, "\n"
                     "# Assembler by NeTort, 2023\n"
                     "# Working...\n"
                     "# If something is wrong it will call you looser, dont cry\n\n");
 
-    AssembleMath("ex5.txt", "ex5_translated.txt");
+
+    for (int argn = 0; argn < argc; argn++)
+    {
+        if (strcmp(argv[argn], "--finname") == 0)
+        {
+            AssembleMath(argv[argn + 1], BIN_FILENAME);
+            argn++;
+        }
+    }
+
 
     return 0;
 }
@@ -40,10 +49,10 @@ int main() { //todo args cmd line
 /**
  * @brief change commands from fin_name to their codes (from usr_cmd) fout_name. cmd_arr of usr_cmd structs is formed using ParseCmdNames func
 */
-AsmResType AssembleMath (const char * fin_name, const char * fout_name) {
+AsmResType AssembleMath (const char * fin_name, const char * fbinout_name) {
 
     assert(fin_name);
-    assert(fout_name);
+    assert(fbinout_name);
 
     //============= READ TEXT FROM PROGRAM FILE AND SPLIT IT INTO LINES ==============
 
@@ -72,7 +81,7 @@ AsmResType AssembleMath (const char * fin_name, const char * fout_name) {
 
     //========================== OUTPUT TO BINARY FILE ===============================
 
-    WriteCodeBin(BIN_FILENAME, prog_code, n_bytes);
+    WriteCodeBin(fbinout_name, prog_code, n_bytes);
 
     //====================== FREE ALL THE ALLOCATED MEMORY ===========================
 

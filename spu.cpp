@@ -9,13 +9,15 @@
 #include "./stacklib/stack.h"
 #include "./text_processing_lib/text_buf.h"
 
-static int   RunBin     (const char * in_fname);
+static int RunBin (const char * in_fname);
 
-static int SPUCtor    (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
-static int SPUDtor    (SPU * spu);
+static int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
+static int SPUDtor (SPU * spu);
 
-static int   GetArg     (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
-static int * SetArg     (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
+static int MakePrecise (int arg, MultDblFrom action);
+
+static int   GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
+static int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
 
 static Elem_t PopCmpTopStack (stack * stk_ptr);
 static int    DivideInts     (int numerator, int denominator);
@@ -44,7 +46,7 @@ int RunBin (const char * in_fname) {
 
     SPU my_spu = {};
 
-    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_STK_CAPA, SPU_RAM_SIZE);
+    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_STK_CAPA, SPU_RAM_WIDTH * SPU_RAM_HIGHT);
 
     //=======================================================================================================
 
@@ -230,7 +232,7 @@ int RunBin (const char * in_fname) {
 
             case CMD_JMP:
             {
-                memcpy(&ip, (prog_code + ip + sizeof(char)), sizeof(int));
+                memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
                 fprintf(stderr, "# Jmp to %lu\n", ip);
 
@@ -245,7 +247,6 @@ int RunBin (const char * in_fname) {
 
                 if (cmp_res > 0)
                 {
-
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
                     fprintf(stderr, "# Jmp to %lu\n", ip);
@@ -286,7 +287,6 @@ int RunBin (const char * in_fname) {
 
                 if (cmp_res < 0)
                 {
-
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
                     fprintf(stderr, "# Jmp to %lu\n", ip);
@@ -327,7 +327,6 @@ int RunBin (const char * in_fname) {
 
                 if (cmp_res == 0)
                 {
-
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
                     fprintf(stderr, "# Jmp to %lu\n", ip);
@@ -366,7 +365,6 @@ int RunBin (const char * in_fname) {
                 // todo jump on fridays
                 if (0)
                 {
-
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
                     fprintf(stderr, "# Jmp to %lu\n", ip);
@@ -386,7 +384,7 @@ int RunBin (const char * in_fname) {
                 return 1;
             }
         }
-        val  = 0;
+        val = 0;
     }
 
     free(prog_code_init);
@@ -395,7 +393,15 @@ int RunBin (const char * in_fname) {
     return 0;
 }
 
-//! didnot debug
+int MakePrecise (int arg, MultDblFrom action)
+{
+    if (action == MultDblFrom::MULT)
+        return arg * STK_PRECISION;
+
+    else if (action == MultDblFrom::DIV)
+        return arg / STK_PRECISION;
+}
+
 int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
 {
     assert(prog_code);
@@ -484,7 +490,7 @@ int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
 
         tmp_res = 0;
 
-        (*ip) += sizeof(int);
+        (*ip) += sizeof(char);
 
         ram_ptr = &RAM[res];
 
@@ -551,7 +557,7 @@ int SPUDtor (SPU * spu)
     DtorStack(&spu->stk);
     DtorStack(&spu->call_stk);
 
-    memset(spu->RAM, 0xcc, SPU_RAM_SIZE * sizeof(int));
+    memset(spu->RAM, 0xcc, SPU_RAM_WIDTH * SPU_RAM_HIGHT * sizeof(int));
     free(spu->RAM);
 }
 
@@ -580,5 +586,5 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
 }
 
  int DivideInts(int numerator, int denominator) {
-    return (int) numerator / denominator;
+    return (int) ((float) numerator / (float) denominator * STK_PRECISION);
  }
