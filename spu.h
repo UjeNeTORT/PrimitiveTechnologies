@@ -5,9 +5,10 @@
 
 #include "./stacklib/stack.h"
 
-const int SPU_STK_CAPA = 100;
-const int SPU_REGS_NUM = 4;   // because i want 4
-const int SPU_RAM_SIZE = 100; // for graphics
+const int SPU_STK_CAPA      = 1000;
+const int SPU_CALL_STK_CAPA = 100;
+const int SPU_REGS_NUM      = 4;   // because i want 4
+const int SPU_RAM_SIZE      = 100; // for graphics
 
 struct SPU {
 
@@ -17,6 +18,8 @@ struct SPU {
 
 
     stack stk;
+
+    stack call_stk;
 
     int * RAM;
 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "commands.h"
 #include "spu.h"
@@ -10,7 +11,7 @@
 
 static int   RunBin     (const char * in_fname);
 
-static int SPUCtor    (SPU * spu, int stack_capacity, int regs_num, int ram_size);
+static int SPUCtor    (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
 static int SPUDtor    (SPU * spu);
 
 static int   GetArg     (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
@@ -43,7 +44,7 @@ int RunBin (const char * in_fname) {
 
     SPU my_spu = {};
 
-    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_REGS_NUM, SPU_RAM_SIZE);
+    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_STK_CAPA, SPU_RAM_SIZE);
 
     //=======================================================================================================
 
@@ -202,6 +203,27 @@ int RunBin (const char * in_fname) {
                 PushStack(&my_spu.stk, val);
 
                 ip += sizeof(char);
+
+                break;
+            }
+
+            case CMD_CALL:
+            {
+                PushStack(&my_spu.call_stk, ip + sizeof(char) +  sizeof(int));
+
+                memcpy(&ip, (prog_code + ip + sizeof(char)), sizeof(int));
+
+                fprintf(stderr, "# Call to %lu\n", ip);
+
+                break;
+            }
+
+            case CMD_RET:
+            {
+                pop_err = POP_NO_ERR;
+                ip = PopStack(&my_spu.call_stk, &pop_err);
+
+                fprintf(stderr, "# Ret to %lu\n", ip);
 
                 break;
             }
@@ -412,11 +434,13 @@ int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     if (cmd & ARG_MEMRY_VAL)
     {
         res = RAM[res];
+        sleep(0.2);
     }
 
     return res;
 }
 
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
 {
     assert(prog_code);
@@ -494,17 +518,23 @@ int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     return NULL;
 }
 
-int SPUCtor (SPU * spu, int stack_capacity, int regs_num, int ram_size)
+int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size)
 {
     assert(spu);
 
     if (CtorStack(&(spu->stk), stack_capacity) != CTOR_NO_ERR)
     {
         fprintf(stderr, "Stack Constructor returned error (TODO TODO TODO)\n"); // todo
-        abort();                                                                // aborting is justified because stack is the "kernel" of spu
+        abort();                                                                // aborting is justified
     }
 
-    spu->RAM = (int *) calloc(ram_size, sizeof(int)); //? why does memory leak
+    if (CtorStack(&(spu->call_stk), call_stack_capacity) != CTOR_NO_ERR)
+    {
+        fprintf(stderr, "Call-Stack Constructor returned error (TODO TODO TODO)\n"); // todo
+        abort();                                                                // aborting is justified
+    }
+
+    spu->RAM = (int *) calloc(ram_size, sizeof(int));
     if (/*validateptr*/spu->RAM == NULL) // todo pointer validator
     {
         fprintf(stderr, "Unable to allocate memory for RAM\n");
@@ -519,6 +549,7 @@ int SPUDtor (SPU * spu)
     assert(spu);
 
     DtorStack(&spu->stk);
+    DtorStack(&spu->call_stk);
 
     memset(spu->RAM, 0xcc, SPU_RAM_SIZE * sizeof(int));
     free(spu->RAM);
@@ -545,7 +576,7 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
         abort();
     }
 
-    return val_below - val_top;
+    return val_top - val_below;
 }
 
  int DivideInts(int numerator, int denominator) {
