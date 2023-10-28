@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "commands.h"
+#include "../commands.h"
 
 const size_t       RUNS_CNT       = 2;
 const size_t       RUN_LBL_UPD    = 1;

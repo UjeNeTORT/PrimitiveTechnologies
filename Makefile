@@ -7,37 +7,26 @@ options = -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-eq
 asm_flags = --finname testcases/ex7.txt
 
 DEFAULT = $(wildcard stacklib/*.cpp)
-ASM = $(DEFAULT) asm.cpp $(wildcard text_processing_lib/*.cpp)
-DISASM = $(DEFAULT) disasm.cpp
-Main_files = $(DEFAULT)  spu.cpp $(wildcard text_processing_lib/*.cpp)
+ASM = $(DEFAULT) assembler/asm.cpp $(wildcard text_processing_lib/*.cpp)
+DISASM = $(DEFAULT) disassembler/disasm.cpp
+Main_files = $(DEFAULT)  processor/spu.cpp $(wildcard text_processing_lib/*.cpp)
 
 start: compile_asm compile_disasm compile_proc run_asm run_disasm run
 
 compile_asm:
-	g++ $(ASM) -o asm.exe $(options) $(debug)
+	g++ $(ASM) -o assembler/asm.exe $(options) $(debug)
 
 compile_disasm:
-	g++ $(DISASM) -o disasm.exe $(options) $(debug)
+	g++ $(DISASM) -o disassembler/disasm.exe $(options) $(debug)
 
 compile_proc:
-	g++ $(Main_files) -o start.exe $(options) $(debug)
+	g++ $(Main_files) -o processor/start.exe $(options) $(debug)
 
 run_asm:
-	./asm.exe $(asm_flags)
+	assembler/asm.exe $(asm_flags)
 
 run_disasm:
-	./disasm.exe
+	disassembler/disasm.exe
 
 run:
-	./start.exe
-
-TEST_1 = asm.exe ex1.txt < test1.txt > ans1.txt
-
-compile_tests:
-	g++ $(TESTS) -o tests.exe $(options) $(debug)
-
-run_tests:
-	./tests.exe
-
-test:
-	compile_tests run_tests
+	processor/start.exe

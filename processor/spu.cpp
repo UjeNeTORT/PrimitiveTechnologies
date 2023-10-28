@@ -5,10 +5,10 @@
 #include <unistd.h>
 #include <math.h>
 
-#include "commands.h"
+#include "../commands.h"
 #include "spu.h"
-#include "./stacklib/stack.h"
-#include "./text_processing_lib/text_buf.h"
+#include "../stacklib/stack.h"
+#include "../text_processing_lib/text_buf.h"
 
 const int INTERMED_INFO = 1;
 #define PRINTF_INTERMED_INFO(format, ...)     \
@@ -34,9 +34,7 @@ int main() {
 
     fprintf(stdout, "\n"
                     "# Processor by NeTort, 2023\n"
-                    "# Does stuff... What else can i say?\n"
-                    "# Today i ve accidentially skipped descrete analisys seminar. Im such a morron.\n"
-                    "# On the other hand i have coded this app faster...\n\n");
+                    "# Does stuff... What else can i say?\n\n");
 
     SPU my_spu = {};
     SPUCtor(&my_spu, SPU_STK_CAPA, SPU_STK_CAPA, SPU_RAM_WIDTH * SPU_RAM_HIGHT);

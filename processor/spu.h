@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "./stacklib/stack.h"
+#include "../stacklib/stack.h"
 
 #define PUSH_SPU_STK()                                              \
     int arg = GetArg(prog_code, &ip, my_spu.gp_regs, my_spu.RAM);   \

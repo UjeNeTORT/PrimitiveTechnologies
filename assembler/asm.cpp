@@ -5,8 +5,8 @@
 #include <string.h>
 
 #include "asm.h"
-#include "commands.h"
-#include "./text_processing_lib/text_buf.h"
+#include "../commands.h"
+#include "../text_processing_lib/text_buf.h"
 
 /**
  * @brief create new label in labels array (n_lbls has no be increased manually outside the function)

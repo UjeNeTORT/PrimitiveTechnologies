@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "commands.h"
+#include "../commands.h"
 
 #define FPRINTF_LISTING_NOARG(stream, id, cmd, name, symbs)  \
     fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);         \
@@ -104,8 +104,7 @@ int main() {
 
     fprintf(stdout, "\n"
                     "# Disassembler by NeTort, 2023\n"
-                    "# Working...\n"
-                    "# Like a surgeon carefully slicing flesh of byte code array and showing all its organs\n\n");
+                    "# Working...\n\n");
 
     DisAssemble(BIN_FILENAME, DISASM_FILENAME);
 
