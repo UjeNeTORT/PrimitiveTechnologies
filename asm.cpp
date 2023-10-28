@@ -617,35 +617,6 @@ int TranslateProgram (char * text, char * prog_code) {
     return n_bytes;
 }
 
-//! dont use - not working for mem-effective byte-code
-int WriteCodeTxt(const char * fout_name, char * prog_code, size_t n_tokens) {
-
-    assert(fout_name);
-    assert(prog_code);
-
-    FILE * fout = fopen(fout_name, "wb");
-    assert(fout);
-
-    int cmd_id  = 0;
-
-    for (size_t ip = 0; ip < n_tokens; ip++) {
-
-        cmd_id  = prog_code[ip];
-        fprintf(fout, "%d ", cmd_id);
-
-        if (prog_code[ip] != CMD_HLT && (prog_code[ip] & ARG_IMMED_VAL || prog_code[ip] & ARG_REGTR_VAL))
-            fprintf(fout, "%d", prog_code[++ip]);
-
-        fprintf(fout, "\n");
-
-        cmd_id  = 0;
-    }
-
-    fclose(fout);
-
-    return 0; // todo enum
-}
-
 int WriteCodeBin (const char * fout_name, char * prog_code, size_t n_tokens) {
 
     assert(fout_name);
@@ -674,11 +645,9 @@ int TokenizeText (char ** text, size_t n_lines, char * text_tokenized) {
 
     for (size_t line = 0; line < n_lines; line++) {
 
-        // strcpy
+        strcpy(text_tokenized, text[line]);
+
         line_size = strlen(text[line]);
-
-        strncpy(text_tokenized, text[line], line_size);
-
         text_tokenized += line_size;
         *text_tokenized = ' ';
         text_tokenized++;

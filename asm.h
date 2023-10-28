@@ -28,7 +28,6 @@ enum REG_ID_OUT {
 static AsmResType AssembleMath      (const char * fin_name, const char * fout_name);
 static int        DecommentProgram  (char ** text, size_t n_lines);
 static int        TranslateProgram  (char * text, char * prog_code);
-static int        WriteCodeTxt      (const char * fout_name, char * prog_code, size_t n_cmds);
 static int        WriteCodeBin      (const char * fout_name, char * prog_code, size_t n_cmds);
 
 #endif // COMPILER_H
