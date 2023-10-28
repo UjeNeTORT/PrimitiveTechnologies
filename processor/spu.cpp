@@ -10,27 +10,28 @@
 #include "../stacklib/stack.h"
 #include "../text_processing_lib/text_buf.h"
 
-const int INTERMED_INFO = 1;
+const int SHOW_INTERMED_INFO = 0;
 #define PRINTF_INTERMED_INFO(format, ...)     \
-    if (INTERMED_INFO)                        \
+    if (SHOW_INTERMED_INFO)                   \
         fprintf(stderr, format, __VA_ARGS__); \
 
-static size_t        ReadByteCode   (const char * in_fname, char ** prog_code);
-static RunBinRes     RunBin         (const char * prog_code, size_t n_bytes, SPU * spu);
-static FinishWorkRes FinishWork     (char * prog_code, SPU * spu);
+static size_t        ReadByteCode (const char * in_fname, char ** prog_code);
+static RunBinRes     RunBin       (const char * prog_code, size_t n_bytes, SPU * spu);
+static FinishWorkRes FinishWork   (char * prog_code, SPU * spu);
 
 static int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
 static int SPUDtor (SPU * spu);
 
-static int   GetArg    (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
-static int * SetArg    (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
-static int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
+static int   GetArg   (const char * prog_code, size_t ip, int gp_regs[], int RAM[]);
+static int * SetArg   (const char * prog_code, size_t ip, int gp_regs[], int RAM[]);
+static int   CalcIpOffset   (char cmd);
+static int   CmdCodeIsValid (char code);
 
 static Elem_t PopCmpTopStack (stack * stk_ptr);
 static int    DivideInts (int numerator, int denominator);
 static int    MultInts   (int frst, int scnd);
 
-int main() {
+int main(int argc, char * argv[]) {
 
     fprintf(stdout, "\n"
                     "# Processor by NeTort, 2023\n"
@@ -113,9 +114,11 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
             case CMD_PUSH:
             {
-                int arg = GetArg(prog_code, &ip, spu->gp_regs, spu->RAM);
+                int arg = GetArg(prog_code, ip, spu->gp_regs, spu->RAM);
 
                 PushStack(&spu->stk, arg);
+
+                ip += CalcIpOffset(prog_code[ip]);
 
                 PRINTF_INTERMED_INFO("# (%s) Push GetArg -> %d\n", "proc", arg);
 
@@ -126,7 +129,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
             {
                 if (prog_code[ip] & ARG_TYPE_MSK)
                 {
-                    int * arg_ptr = SetArg(prog_code, &ip, spu->gp_regs, spu->RAM);
+                    int * arg_ptr = SetArg(prog_code, ip, spu->gp_regs, spu->RAM);
 
                     if (arg_ptr == NULL)
                     {
@@ -137,6 +140,8 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                     pop_err = POP_NO_ERR;
                     *arg_ptr = PopStack(&spu->stk, &pop_err);
 
+                    ip += CalcIpOffset(prog_code[ip]);
+
                     PRINTF_INTERMED_INFO("# (%s) Pop number to %p\n", "proc", arg_ptr);
                 }
                 else
@@ -146,7 +151,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                     PRINTF_INTERMED_INFO("# (%s) Pop number\n", "proc");
 
-                    ip += sizeof(char);
+                    ip += CalcIpOffset(prog_code[ip]);
                 }
 
                 break;
@@ -162,7 +167,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PushStack(&spu->stk, val);
 
-                ip += sizeof(char);
+                ip += CalcIpOffset(prog_code[ip]);
 
                 break;
             }
@@ -175,7 +180,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 fprintf(stdout, "\n<< %.2f\n", (float) val / STK_PRECISION);
 
-                ip += sizeof(char);
+                ip += CalcIpOffset(prog_code[ip]);
 
                 break;
             }
@@ -190,7 +195,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PRINTF_INTERMED_INFO("# (%s) Add: %d\n", "proc", val);
 
-                ip += sizeof(char);
+                ip += CalcIpOffset(prog_code[ip]);
 
                 break;
             }
@@ -205,7 +210,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PRINTF_INTERMED_INFO("# (%s) Sub: %d\n", "proc", val);
 
-                ip += sizeof(char);
+                ip += CalcIpOffset(prog_code[ip]);
 
                 break;
             }
@@ -220,7 +225,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PushStack(&spu->stk, val);
 
-                ip += sizeof(char);
+                ip += CalcIpOffset(prog_code[ip]);
 
                 break;
             }
@@ -237,7 +242,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PushStack(&spu->stk, val);
 
-                ip += sizeof(char);
+                ip += CalcIpOffset(prog_code[ip]);
 
                 break;
             }
@@ -256,7 +261,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PRINTF_INTERMED_INFO("# (%s) Div: %d\n", "proc", val);
 
-                ip += sizeof(char);
+                ip += CalcIpOffset(prog_code[ip]);
 
                 break;
             }
@@ -290,22 +295,19 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 break;
             }
-            // IMM
             case CMD_JA:
             {
                 int cmp_res = PopCmpTopStack(&spu->stk);
 
-                ip += sizeof(char);
-
                 if (cmp_res > 0)
                 {
-                    memcpy(&ip, (prog_code + ip), sizeof(int));
+                    memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
-                    ip += sizeof(int); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -314,18 +316,15 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
             {
                 int cmp_res = PopCmpTopStack(&spu->stk);
 
-                ip += sizeof(char);
-
                 if (cmp_res >= 0)
                 {
-
-                    memcpy(&ip, (prog_code + ip), sizeof(int));
+                    memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
-                    ip += sizeof(int); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -335,17 +334,15 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
             {
                 int cmp_res = PopCmpTopStack(&spu->stk);
 
-                ip += sizeof(char);
-
                 if (cmp_res < 0)
                 {
-                    memcpy(&ip, (prog_code + ip), sizeof(int));
+                    memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
-                    ip += sizeof(int); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -355,17 +352,15 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
             {
                 int cmp_res = PopCmpTopStack(&spu->stk);
 
-                ip += sizeof(char);
-
                 if (cmp_res <= 0)
                 {
-                    memcpy(&ip, (prog_code + ip), sizeof(int));
+                    memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
-                    ip += sizeof(int); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -375,17 +370,15 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
             {
                 int cmp_res = PopCmpTopStack(&spu->stk);
 
-                ip += sizeof(char);
-
                 if (cmp_res == 0)
                 {
-                    memcpy(&ip, (prog_code + ip), sizeof(int));
+                    memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
-                    ip += sizeof(int); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -395,17 +388,15 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
             {
                 int cmp_res = PopCmpTopStack(&spu->stk);
 
-                ip += sizeof(char);
-
                 if (cmp_res != 0)
                 {
-                    memcpy(&ip, (prog_code + ip), sizeof(int));
+                    memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
-                    ip += sizeof(int); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -424,7 +415,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
     return RunBinRes::REACH_END;
 }
 
-int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
+int GetArg (const char * prog_code, size_t ip, int gp_regs[], int RAM[])
 {
     assert(prog_code);
     assert(ip);
@@ -432,133 +423,61 @@ int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     assert(RAM);
 
     char cmd = 0;
-    memcpy(&cmd, (prog_code + *ip), sizeof(char));
+    memcpy(&cmd, (prog_code + ip), sizeof(char));
 
-    (*ip) += sizeof(char);
+    ip += sizeof(char);
 
     int res     = 0;
     int tmp_res = 0;
 
     if (cmd & ARG_IMMED_VAL)
     {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
+        memcpy(&tmp_res, (prog_code + ip), sizeof(int));
         res += tmp_res * STK_PRECISION; // we multiply only here because in other cases values in ram and in regs are allready multiplied
 
         tmp_res = 0;
 
-        (*ip) += sizeof(int);
+        ip += sizeof(int);
     }
 
     if (cmd & ARG_REGTR_VAL)
     {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
+        memcpy(&tmp_res, (prog_code + ip), sizeof(char));
         res += gp_regs[tmp_res]; // no precision operations as in registers all values are already multiplied by precision
 
         tmp_res = 0;
 
-        (*ip) += sizeof(char);
+        ip += sizeof(char);
     }
 
     if (cmd & ARG_MEMRY_VAL)
     {
         res = RAM[res];         // no precision operations as in ram all values are already multiplied by precision
-        sleep(1);
+        sleep(2);
     }
 
     return res;
 }
 
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
-{
-    assert(prog_code);
-    assert(ip);
-    assert(gp_regs);
-    assert(RAM);
-
-    char cmd = 0;
-    memcpy(&cmd, (prog_code + *ip), sizeof(char));
-
-    (*ip) += sizeof(char);
-
-    int res     = 0;
-    int tmp_res = 0;
-
-    int * ram_ptr = NULL;
-    int * reg_ptr = NULL;
-
-    if (cmd & ARG_IMMED_VAL && cmd & ARG_REGTR_VAL && cmd & ARG_MEMRY_VAL)
-    {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
-        res = tmp_res;
-
-        tmp_res = 0;
-
-        (*ip) += sizeof(int);
-
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
-        res += gp_regs[tmp_res];
-
-        (*ip) += sizeof(char);
-
-        ram_ptr = &RAM[res];
-
-        return ram_ptr;
-    }
-    else if (cmd & ARG_REGTR_VAL && cmd & ARG_MEMRY_VAL)
-    {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
-        res = gp_regs[tmp_res];
-
-        tmp_res = 0;
-
-        (*ip) += sizeof(char);
-
-        ram_ptr = &RAM[res];
-
-        return ram_ptr;
-    }
-    else if (cmd & ARG_IMMED_VAL && cmd & ARG_MEMRY_VAL)
-    {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
-        res = tmp_res;
-
-        tmp_res = 0;
-
-        (*ip) += sizeof(int);
-
-        ram_ptr = &RAM[res];
-
-        return ram_ptr;
-    }
-    else if (cmd & ARG_REGTR_VAL)
-    {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
-        reg_ptr = &gp_regs[tmp_res];
-
-        tmp_res = 0;
-
-        (*ip) += sizeof(char);
-
-        return reg_ptr;
-    }
-
-    return NULL;
-}
-
-int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
+int * SetArg (const char * prog_code, size_t ip, int gp_regs[], int RAM[])
 {
     // todo validate cmd code and put there call from
-    // possible pop rax pop [rax] pop [rax + 5]
+
     assert(prog_code);
     assert(ip);
     assert(gp_regs);
     assert(RAM);
 
     char cmd = 0;
-    memcpy(&cmd, (prog_code + *ip), sizeof(char));
+    memcpy(&cmd, (prog_code + ip), sizeof(char));
 
-    (*ip) += sizeof(char);
+    if (!CmdCodeIsValid(cmd))
+    {
+        fprintf(stderr, "Forbidden command code %d\n", cmd);
+        abort();
+    }
+
+    ip += sizeof(char);
 
     int tmp_res = 0;
     int imm_storage = 0;
@@ -568,18 +487,18 @@ int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
 
     if (cmd & ARG_IMMED_VAL)
     {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
+        memcpy(&tmp_res, (prog_code + ip), sizeof(int));
         imm_storage = tmp_res;
 
-        (*ip) += sizeof(int);
+        ip += sizeof(int);
     }
     if (cmd & ARG_REGTR_VAL)
     {
-        memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
+        memcpy(&tmp_res, (prog_code + ip), sizeof(char));
         imm_storage += gp_regs[tmp_res];
         reg_ptr = &gp_regs[tmp_res];
 
-        (*ip) += sizeof(char);
+        ip += sizeof(char);
     }
     if (cmd & ARG_MEMRY_VAL)
     {
@@ -589,6 +508,33 @@ int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     }
 
     return reg_ptr;
+}
+
+static int CalcIpOffset (char cmd)
+{
+    int offset = sizeof(char);
+
+    if (cmd & ARG_IMMED_VAL)
+        offset += sizeof(int);
+
+    if (cmd & ARG_REGTR_VAL)
+        offset += sizeof(char);
+
+    return offset;
+}
+
+static int CmdCodeIsValid (char code)
+{
+    if ((code & OPCODE_MSK) == CMD_POP)
+    {
+        if ((code & ARG_IMMED_VAL) && (code & ARG_REGTR_VAL))
+        {
+            return 0;
+        }
+
+    }
+
+    return 1;
 }
 
 int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size)
@@ -624,7 +570,6 @@ int SPUDtor (SPU * spu)
     DtorStack(&spu->stk);
     DtorStack(&spu->call_stk);
 
-    memset(spu->RAM, 0xcc, SPU_RAM_WIDTH * SPU_RAM_HIGHT * sizeof(int));
     free(spu->RAM);
 
     return 0;

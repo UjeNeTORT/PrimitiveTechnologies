@@ -96,7 +96,7 @@
     fprintf(stream, "\n");
 
 const int    LISTING_CODE_TEXT_DISTANCE = 20;
-const char * DISASM_FILENAME = "disasmed.txt";
+const char * DISASM_FILENAME            = "disasmed.txt";
 
 static int DisAssemble(const char * asm_fname, const char * out_fname);
 

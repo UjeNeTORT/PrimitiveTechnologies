@@ -12,10 +12,12 @@
  * @brief create new label in labels array (n_lbls has no be increased manually outside the function)
 */
 static int  LabelCtor     (Label labels[], int n_lbls, int byte_pos, const char * name);
+
 /**
  * @brief delete all the labels from the labels array, free the memory
 */
 static int  LabelDtor     (Label labels[], int n_lbls);
+
 /**
  * @brief return position of label with name token in labels array
 */
@@ -25,14 +27,17 @@ static int  LabelFind     (Label labels[], int n_lbls, char * token);
  * @brief put cmd-code with argument val (int) to prog-code array
 */
 static int  EmitCodeArg   (char * prog_code, int * n_bytes, char code, int val);
+
 /**
  * @brief put cmd-code with argument reg_id (char) to prog-code array
 */
 static int  EmitCodeReg   (char * prog_code, int * n_bytes, char code, char reg_id);
+
 /**
  * @brief put cmd-code with argument val (int) + reg_id (char) to prog-code array
 */
 static int  EmitCodeSum   (char * prog_code, int * n_bytes, char code, int val, char reg_id);
+
 /**
  * @brief put cmd-code without argument to prog-code array
 */
