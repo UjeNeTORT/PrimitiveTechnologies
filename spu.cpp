@@ -10,19 +10,25 @@
 #include "./stacklib/stack.h"
 #include "./text_processing_lib/text_buf.h"
 
-static int RunBin (const char * in_fname);
+const int INTERMED_INFO = 1;
+#define PRINTF_INTERMED_INFO(format, ...)     \
+    if (INTERMED_INFO)                        \
+        fprintf(stderr, format, __VA_ARGS__); \
+
+static size_t        ReadByteCode   (const char * in_fname, char ** prog_code);
+static RunBinRes     RunBin         (const char * prog_code, size_t n_bytes, SPU * spu);
+static FinishWorkRes FinishWork     (char * prog_code, SPU * spu);
 
 static int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
 static int SPUDtor (SPU * spu);
 
-// static int MakePrecise (int arg, MultDblFrom action);
-
-static int   GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
-static int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
-// static int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
+static int   GetArg    (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
+static int * SetArg    (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
+static int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
 
 static Elem_t PopCmpTopStack (stack * stk_ptr);
-static int    DivideInts     (int numerator, int denominator);
+static int    DivideInts (int numerator, int denominator);
+static int    MultInts   (int frst, int scnd);
 
 int main() {
 
@@ -32,25 +38,30 @@ int main() {
                     "# Today i ve accidentially skipped descrete analisys seminar. Im such a morron.\n"
                     "# On the other hand i have coded this app faster...\n\n");
 
-    RunBin(BIN_FILENAME);
+    SPU my_spu = {};
+    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_STK_CAPA, SPU_RAM_WIDTH * SPU_RAM_HIGHT);
+
+    char * prog_code = NULL;
+    size_t n_bytes = ReadByteCode(BIN_FILENAME, &prog_code);
+
+    RunBinRes run_res = RunBin((const char *) prog_code, n_bytes, &my_spu);
+
+    FinishWork(prog_code, &my_spu);
+
+    if ((run_res != REACH_END) &&
+        (run_res != REACH_HLT))
+    {
+        fprintf(stderr, "RunBin cant finish its work due to an unexpected error (%d)!\n", run_res);
+        return 1;
+    }
 
     return 0;
 }
 
-/** assume that binary file contains int byte code array where each number except 1st one contains command / argument
- *
-*/
-int RunBin (const char * in_fname) {
-
+size_t ReadByteCode (const char * in_fname, char ** prog_code)
+{
     assert(in_fname);
-
-    //================================================================== CREATE AND INITIALIZE CPU STRUCTURE
-
-    SPU my_spu = {};
-
-    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_STK_CAPA, SPU_RAM_WIDTH * SPU_RAM_HIGHT);
-
-    //=======================================================================================================
+    assert(prog_code);
 
     FILE * in_file = fopen(in_fname, "rb");
 
@@ -59,15 +70,33 @@ int RunBin (const char * in_fname) {
     fread(&n_bytes, sizeof(size_t), 1, in_file);
 
     // read byte code array: form and fill prog_code array
-    char * prog_code = (char *) calloc(n_bytes, sizeof(char));
-    assert(prog_code);
-    char * const prog_code_init = prog_code;
+    *prog_code = (char *) calloc(n_bytes, sizeof(char));
+    assert(*prog_code);
 
     size_t readen = 0;
-    readen = fread(prog_code, sizeof(char), n_bytes, in_file);
+    readen = fread(*prog_code, sizeof(char), n_bytes, in_file);
     assert(readen == n_bytes);
 
     fclose(in_file);
+
+    return n_bytes;
+}
+
+FinishWorkRes FinishWork (char * prog_code, SPU * spu)
+{
+    assert(prog_code);
+    assert(spu);
+
+    free(prog_code);
+    SPUDtor(spu);
+
+    return FinishWorkRes::ALL_OK;
+}
+
+RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
+{
+    assert(prog_code);
+    assert(spu);
 
     POP_OUT pop_err = POP_NO_ERR;
     int val   = 0;
@@ -79,20 +108,18 @@ int RunBin (const char * in_fname) {
         {
             case CMD_HLT:
             {
-                fprintf(stderr, "# Hlt encountered, goodbye!\n");
+                PRINTF_INTERMED_INFO("# (%s) Hlt encountered, goodbye!\n", "proc");
 
-                free(prog_code_init);
-                SPUDtor(&my_spu);
-
-                return 0;
+                return RunBinRes::REACH_HLT;
             }
 
             case CMD_PUSH:
             {
-                int arg = GetArg(prog_code, &ip, my_spu.gp_regs, my_spu.RAM);
-                PushStack(&my_spu.stk, arg);
+                int arg = GetArg(prog_code, &ip, spu->gp_regs, spu->RAM);
 
-                fprintf(stderr, "# Push GetArg -> %d\n", arg);
+                PushStack(&spu->stk, arg);
+
+                PRINTF_INTERMED_INFO("# (%s) Push GetArg -> %d\n", "proc", arg);
 
                 break;
             }
@@ -101,25 +128,25 @@ int RunBin (const char * in_fname) {
             {
                 if (prog_code[ip] & ARG_TYPE_MSK)
                 {
-                    int * arg_ptr = SetArg(prog_code, &ip, my_spu.gp_regs, my_spu.RAM);
+                    int * arg_ptr = SetArg(prog_code, &ip, spu->gp_regs, spu->RAM);
 
                     if (arg_ptr == NULL)
                     {
-                        fprintf(stderr, "# Processor Error! SetArg couldnt return stuff\n");
+                        fprintf(stderr, "Processor Error! SetArg couldnt return stuff\n");
                         abort();
                     }
 
                     pop_err = POP_NO_ERR;
-                    *arg_ptr = PopStack(&my_spu.stk, &pop_err);
+                    *arg_ptr = PopStack(&spu->stk, &pop_err);
 
-                    fprintf(stderr, "# Pop number to %p\n", arg_ptr);
+                    PRINTF_INTERMED_INFO("# (%s) Pop number to %p\n", "proc", arg_ptr);
                 }
                 else
                 {
                     pop_err = POP_NO_ERR;
-                    PopStack(&my_spu.stk, &pop_err);
+                    PopStack(&spu->stk, &pop_err);
 
-                    fprintf(stderr, "# Pop number\n");
+                    PRINTF_INTERMED_INFO("# (%s) Pop number\n", "proc");
 
                     ip += sizeof(char);
                 }
@@ -131,10 +158,11 @@ int RunBin (const char * in_fname) {
             {
                 fprintf(stdout, "\n>> ");
 
-                val = 0;
                 fscanf(stdin, "%d", &val);
 
-                PushStack(&my_spu.stk, val);
+                val *= STK_PRECISION;
+
+                PushStack(&spu->stk, val);
 
                 ip += sizeof(char);
 
@@ -145,7 +173,9 @@ int RunBin (const char * in_fname) {
             {
                 pop_err = POP_NO_ERR;
 
-                fprintf(stdout, "\n<<   %d\n", PopStack(&my_spu.stk, &pop_err));
+                val = PopStack(&spu->stk, &pop_err);
+
+                fprintf(stdout, "\n<< %.2f\n", (float) val / STK_PRECISION);
 
                 ip += sizeof(char);
 
@@ -157,10 +187,10 @@ int RunBin (const char * in_fname) {
                 // PUSH(POP() + POP())
                 pop_err = POP_NO_ERR;
                 val = 0;
-                val = PopStack(&my_spu.stk, &pop_err) + PopStack(&my_spu.stk, &pop_err);
-                PushStack(&my_spu.stk, val);
+                val = PopStack(&spu->stk, &pop_err) + PopStack(&spu->stk, &pop_err);
+                PushStack(&spu->stk, val);
 
-                fprintf(stderr, "# add: %d\n", val);
+                PRINTF_INTERMED_INFO("# (%s) Add: %d\n", "proc", val);
 
                 ip += sizeof(char);
 
@@ -171,9 +201,11 @@ int RunBin (const char * in_fname) {
             {
                 pop_err = POP_NO_ERR;
                 val = 0;
-                val -= PopStack(&my_spu.stk, &pop_err);
-                val += PopStack(&my_spu.stk, &pop_err);
-                PushStack(&my_spu.stk, val);
+                val -= PopStack(&spu->stk, &pop_err);
+                val += PopStack(&spu->stk, &pop_err);
+                PushStack(&spu->stk, val);
+
+                PRINTF_INTERMED_INFO("# (%s) Sub: %d\n", "proc", val);
 
                 ip += sizeof(char);
 
@@ -184,11 +216,11 @@ int RunBin (const char * in_fname) {
             {
                 pop_err = POP_NO_ERR;
                 val = 0;
-                val = PopStack(&my_spu.stk, &pop_err) * PopStack(&my_spu.stk, &pop_err);
+                val = MultInts(PopStack(&spu->stk, &pop_err), PopStack(&spu->stk, &pop_err));
 
-                fprintf(stderr, "# mul: %d\n", val);
+                PRINTF_INTERMED_INFO("# (%s) Mul: %d\n", "proc", val);
 
-                PushStack(&my_spu.stk, val);
+                PushStack(&spu->stk, val);
 
                 ip += sizeof(char);
 
@@ -199,12 +231,13 @@ int RunBin (const char * in_fname) {
             {
                 pop_err = POP_NO_ERR;
                 val = 0;
-                val = PopStack(&my_spu.stk, &pop_err);
-                val = (int) sqrt(val);
+                val = PopStack(&spu->stk, &pop_err);
 
-                fprintf(stderr, "# sqrt: %d\n", val);
+                val = (int) sqrt(val * STK_PRECISION);
 
-                PushStack(&my_spu.stk, val);
+                PRINTF_INTERMED_INFO("# (%s) Sqrt: %d\n", "proc", val);
+
+                PushStack(&spu->stk, val);
 
                 ip += sizeof(char);
 
@@ -214,13 +247,16 @@ int RunBin (const char * in_fname) {
             case CMD_DIV:
             {
                 pop_err = POP_NO_ERR;
-                int denominator = PopStack(&my_spu.stk, &pop_err);
-                int numerator   = PopStack(&my_spu.stk, &pop_err);
+
+                int denominator = PopStack(&spu->stk, &pop_err);
+                int numerator   = PopStack(&spu->stk, &pop_err);
 
                 val = 0;
                 val = DivideInts(numerator, denominator);
 
-                PushStack(&my_spu.stk, val);
+                PushStack(&spu->stk, val);
+
+                PRINTF_INTERMED_INFO("# (%s) Div: %d\n", "proc", val);
 
                 ip += sizeof(char);
 
@@ -229,11 +265,11 @@ int RunBin (const char * in_fname) {
 
             case CMD_CALL:
             {
-                PushStack(&my_spu.call_stk, (Elem_t)(ip + sizeof(char) + sizeof(int)));
+                PushStack(&spu->call_stk, (Elem_t)(ip + sizeof(char) + sizeof(int)));
 
                 memcpy(&ip, (prog_code + ip + sizeof(char)), sizeof(int));
 
-                fprintf(stderr, "# Call to %lu\n", ip);
+                PRINTF_INTERMED_INFO("# (%s) Call to %lu\n", "proc", ip);
 
                 break;
             }
@@ -241,9 +277,9 @@ int RunBin (const char * in_fname) {
             case CMD_RET:
             {
                 pop_err = POP_NO_ERR;
-                ip = PopStack(&my_spu.call_stk, &pop_err);
+                ip = PopStack(&spu->call_stk, &pop_err);
 
-                fprintf(stderr, "# Ret to %lu\n", ip);
+                PRINTF_INTERMED_INFO("# (%s) Ret to %lu\n", "proc", ip);
 
                 break;
             }
@@ -252,14 +288,14 @@ int RunBin (const char * in_fname) {
             {
                 memcpy(&ip, (prog_code + ip + 1), sizeof(int));
 
-                fprintf(stderr, "# Jmp to %lu\n", ip);
+                PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
 
                 break;
             }
             // IMM
             case CMD_JA:
             {
-                int cmp_res = PopCmpTopStack(&my_spu.stk);
+                int cmp_res = PopCmpTopStack(&spu->stk);
 
                 ip += sizeof(char);
 
@@ -267,7 +303,7 @@ int RunBin (const char * in_fname) {
                 {
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
-                    fprintf(stderr, "# Jmp to %lu\n", ip);
+                    PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
@@ -278,7 +314,7 @@ int RunBin (const char * in_fname) {
             }
             case CMD_JAE:
             {
-                int cmp_res = PopCmpTopStack(&my_spu.stk);
+                int cmp_res = PopCmpTopStack(&spu->stk);
 
                 ip += sizeof(char);
 
@@ -287,7 +323,7 @@ int RunBin (const char * in_fname) {
 
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
-                    fprintf(stderr, "# Jmp to %lu\n", ip);
+                    PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
@@ -299,7 +335,7 @@ int RunBin (const char * in_fname) {
 
             case CMD_JB:
             {
-                int cmp_res = PopCmpTopStack(&my_spu.stk);
+                int cmp_res = PopCmpTopStack(&spu->stk);
 
                 ip += sizeof(char);
 
@@ -307,7 +343,7 @@ int RunBin (const char * in_fname) {
                 {
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
-                    fprintf(stderr, "# Jmp to %lu\n", ip);
+                    PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
@@ -319,7 +355,7 @@ int RunBin (const char * in_fname) {
 
             case CMD_JBE:
             {
-                int cmp_res = PopCmpTopStack(&my_spu.stk);
+                int cmp_res = PopCmpTopStack(&spu->stk);
 
                 ip += sizeof(char);
 
@@ -327,7 +363,7 @@ int RunBin (const char * in_fname) {
                 {
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
-                    fprintf(stderr, "# Jmp to %lu\n", ip);
+                    PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
@@ -339,7 +375,7 @@ int RunBin (const char * in_fname) {
 
             case CMD_JE:
             {
-                int cmp_res = PopCmpTopStack(&my_spu.stk);
+                int cmp_res = PopCmpTopStack(&spu->stk);
 
                 ip += sizeof(char);
 
@@ -347,7 +383,7 @@ int RunBin (const char * in_fname) {
                 {
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
-                    fprintf(stderr, "# Jmp to %lu\n", ip);
+                    PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
@@ -359,7 +395,7 @@ int RunBin (const char * in_fname) {
 
             case CMD_JNE:
             {
-                int cmp_res = PopCmpTopStack(&my_spu.stk);
+                int cmp_res = PopCmpTopStack(&spu->stk);
 
                 ip += sizeof(char);
 
@@ -367,25 +403,7 @@ int RunBin (const char * in_fname) {
                 {
                     memcpy(&ip, (prog_code + ip), sizeof(int));
 
-                    fprintf(stderr, "# Jmp to %lu\n", ip);
-                }
-                else
-                {
-                    ip += sizeof(int); // skip integer pointer to a position in code
-                }
-
-                break;
-            }
-
-            case CMD_JF:
-            {
-                ip += sizeof(char);
-                // todo jump on fridays
-                if (0)
-                {
-                    memcpy(&ip, (prog_code + ip), sizeof(int));
-
-                    fprintf(stderr, "# Jmp to %lu\n", ip);
+                    PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
                 else
                 {
@@ -397,29 +415,16 @@ int RunBin (const char * in_fname) {
 
             default:
             {
-                fprintf(stderr, "# Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
+                fprintf(stderr, "Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
 
-                return 1;
+                return RunBinRes::OCC_ERROR;
             }
         }
         val = 0;
     }
 
-    free(prog_code_init);
-    SPUDtor(&my_spu);
-
-    return 0;
+    return RunBinRes::REACH_END;
 }
-
-// int MakePrecise (int arg, MultDblFrom action)
-// {
-//     if (action == MultDblFrom::MULT)
-//         return arg * STK_PRECISION;
-
-//     else
-//         return arg / STK_PRECISION;
-
-// }
 
 int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
 {
@@ -439,7 +444,7 @@ int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     if (cmd & ARG_IMMED_VAL)
     {
         memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
-        res += tmp_res;
+        res += tmp_res * STK_PRECISION; // we multiply only here because in other cases values in ram and in regs are allready multiplied
 
         tmp_res = 0;
 
@@ -449,7 +454,7 @@ int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     if (cmd & ARG_REGTR_VAL)
     {
         memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
-        res += gp_regs[tmp_res];
+        res += gp_regs[tmp_res]; // no precision operations as in registers all values are already multiplied by precision
 
         tmp_res = 0;
 
@@ -458,7 +463,7 @@ int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
 
     if (cmd & ARG_MEMRY_VAL)
     {
-        res = RAM[res];
+        res = RAM[res];         // no precision operations as in ram all values are already multiplied by precision
         sleep(1);
     }
 
@@ -543,41 +548,50 @@ int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     return NULL;
 }
 
-// int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
-// {
-//     assert(prog_code);
-//     assert(ip);
-//     assert(gp_regs);
-//     assert(RAM);
+int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
+{
+    // todo validate cmd code and put there call from
+    // possible pop rax pop [rax] pop [rax + 5]
+    assert(prog_code);
+    assert(ip);
+    assert(gp_regs);
+    assert(RAM);
 
-//     char cmd = 0;
-//     memcpy(&cmd, (prog_code + *ip), sizeof(char));
+    char cmd = 0;
+    memcpy(&cmd, (prog_code + *ip), sizeof(char));
 
-//     (*ip) += sizeof(char);
+    (*ip) += sizeof(char);
 
-//     int res     = 0;
-//     int tmp_res = 0;
+    int tmp_res = 0;
+    int imm_storage = 0;
 
-//     // int * ram_ptr = NULL;
-//     // int * reg_ptr = NULL;
+    int * ram_ptr = NULL;
+    int * reg_ptr = NULL;
 
-//     if (cmd & ARG_IMMED_VAL)
-//     {
-//         memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
-//         res = tmp_res;
+    if (cmd & ARG_IMMED_VAL)
+    {
+        memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
+        imm_storage = tmp_res;
 
-//         (*ip) += sizeof(int);
-//     }
-//     if (cmd & ARG_REGTR_VAL)
-//     {
-//         // reg_ptr = &gp_regs[tmp_res];
-//         res    += gp_regs[tmp_res];
+        (*ip) += sizeof(int);
+    }
+    if (cmd & ARG_REGTR_VAL)
+    {
+        memcpy(&tmp_res, (prog_code + *ip), sizeof(char));
+        imm_storage += gp_regs[tmp_res];
+        reg_ptr = &gp_regs[tmp_res];
 
-//         (*ip) += sizeof(char);
-//     }
+        (*ip) += sizeof(char);
+    }
+    if (cmd & ARG_MEMRY_VAL)
+    {
+        ram_ptr = &RAM[imm_storage];
 
-//     return 0;
-// }
+        return ram_ptr;
+    }
+
+    return reg_ptr;
+}
 
 int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size)
 {
@@ -642,6 +656,11 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
     return val_top - val_below;
 }
 
- int DivideInts(int numerator, int denominator) {
-    return (int) ((float) numerator / (float) denominator);
+static int MultInts (int frst, int scnd)
+{
+    return frst * scnd / STK_PRECISION;
+}
+ int DivideInts(int numerator, int denominator)
+ {
+    return (int) ((float) numerator / denominator * STK_PRECISION);
  }
