@@ -8,14 +8,16 @@ const size_t MAX_LBLS = 50; // random number
 
 const char * BIN_FILENAME = "translated.bin";
 
-const char OPCODE_MSK    = (char) 0b0001'1111;
-const char ARG_TYPE_MSK  = (char) 0b1110'0000;
-const char ARG_IMMED_VAL = (char) 0b0010'0000;
-const char ARG_REGTR_VAL = (char) 0b0100'0000;
-const char ARG_MEMRY_VAL = (char) 0b1000'0000;
+typedef char cmd_code_t;
 
-struct Label {
+const cmd_code_t OPCODE_MSK    = (cmd_code_t) 0b0001'1111;
+const cmd_code_t ARG_TYPE_MSK  = (cmd_code_t) 0b1110'0000;
+const cmd_code_t ARG_IMMED_VAL = (cmd_code_t) 0b0010'0000;
+const cmd_code_t ARG_REGTR_VAL = (cmd_code_t) 0b0100'0000;
+const cmd_code_t ARG_MEMRY_VAL = (cmd_code_t) 0b1000'0000;
 
+struct Label
+{
     int    cmd_ptr;
     char * name;
 };
@@ -41,16 +43,5 @@ enum CMDS {
     CMD_RET  = 17,
     CMD_SQRT = 18,
 };
-
-// // ??
-// static int check_cmds()
-// {
-//     switch(0)
-//     {
-//         // #define DEF_CMD(code) case code:
-//         case 0:
-//         case 0:
-//     }
-// }
 
 #endif // COMMANDS_H
