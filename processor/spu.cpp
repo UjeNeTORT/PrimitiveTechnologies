@@ -98,12 +98,13 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
     assert(spu);
 
     POP_OUT pop_err = POP_NO_ERR;
+    char cmd = 0;
     int val   = 0;
     size_t ip = 0;
 
     while (ip < n_bytes)
     {
-        switch (prog_code[ip] & OPCODE_MSK)
+        switch ((cmd = prog_code[ip]) & OPCODE_MSK)
         {
             case CMD_HLT:
             {
@@ -118,7 +119,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PushStack(&spu->stk, arg);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 PRINTF_INTERMED_INFO("# (%s) Push GetArg -> %d\n", "proc", arg);
 
@@ -127,7 +128,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
             case CMD_POP:
             {
-                if (prog_code[ip] & ARG_TYPE_MSK)
+                if (cmd & ARG_TYPE_MSK)
                 {
                     int * arg_ptr = SetArg(prog_code, ip, spu->gp_regs, spu->RAM);
 
@@ -140,7 +141,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                     pop_err = POP_NO_ERR;
                     *arg_ptr = PopStack(&spu->stk, &pop_err);
 
-                    ip += CalcIpOffset(prog_code[ip]);
+                    ip += CalcIpOffset(cmd);
 
                     PRINTF_INTERMED_INFO("# (%s) Pop number to %p\n", "proc", arg_ptr);
                 }
@@ -151,7 +152,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                     PRINTF_INTERMED_INFO("# (%s) Pop number\n", "proc");
 
-                    ip += CalcIpOffset(prog_code[ip]);
+                    ip += CalcIpOffset(cmd);
                 }
 
                 break;
@@ -167,7 +168,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PushStack(&spu->stk, val);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
@@ -180,7 +181,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 fprintf(stdout, "\n<< %.2f\n", (float) val / STK_PRECISION);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
@@ -195,7 +196,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PRINTF_INTERMED_INFO("# (%s) Add: %d\n", "proc", val);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
@@ -210,7 +211,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PRINTF_INTERMED_INFO("# (%s) Sub: %d\n", "proc", val);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
@@ -225,7 +226,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PushStack(&spu->stk, val);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
@@ -242,7 +243,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PushStack(&spu->stk, val);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
@@ -261,7 +262,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
                 PRINTF_INTERMED_INFO("# (%s) Div: %d\n", "proc", val);
 
-                ip += CalcIpOffset(prog_code[ip]);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
@@ -307,7 +308,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                 }
                 else
                 {
-                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -324,7 +325,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                 }
                 else
                 {
-                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -342,7 +343,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                 }
                 else
                 {
-                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -360,7 +361,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                 }
                 else
                 {
-                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -378,7 +379,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                 }
                 else
                 {
-                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -396,7 +397,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
                 }
                 else
                 {
-                    ip += CalcIpOffset(prog_code[ip]); // skip integer pointer to a position in code
+                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
                 }
 
                 break;
@@ -404,7 +405,7 @@ RunBinRes RunBin (const char * prog_code, size_t n_bytes, SPU * spu)
 
             default:
             {
-                fprintf(stderr, "Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
+                fprintf(stderr, "Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", cmd, ip);
 
                 return RunBinRes::OCC_ERROR;
             }
