@@ -4,6 +4,8 @@ options = -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-eq
 -Wnon-virtual-dtor -Woverloaded-virtual -Wpointer-arith -Wsign-promo -Wstack-usage=8192 -Wstrict-aliasing -Wstrict-null-sentinel 		\
 -Wtype-limits -Wwrite-strings -Werror=vla -D_DEBUG -D_EJUDGE_CLIENT_SIDE -fsanitize=address
 
+asm_flags = --finname testcases/ex7.txt
+
 DEFAULT = $(wildcard stacklib/*.cpp)
 ASM = $(DEFAULT) asm.cpp $(wildcard text_processing_lib/*.cpp)
 DISASM = $(DEFAULT) disasm.cpp
@@ -21,10 +23,21 @@ compile_proc:
 	g++ $(Main_files) -o start.exe $(options) $(debug)
 
 run_asm:
-	./asm.exe
+	./asm.exe $(asm_flags)
 
 run_disasm:
 	./disasm.exe
 
 run:
 	./start.exe
+
+TEST_1 = asm.exe ex1.txt < test1.txt > ans1.txt
+
+compile_tests:
+	g++ $(TESTS) -o tests.exe $(options) $(debug)
+
+run_tests:
+	./tests.exe
+
+test:
+	compile_tests run_tests

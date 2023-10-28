@@ -8,19 +8,52 @@
 #include "commands.h"
 #include "./text_processing_lib/text_buf.h"
 
+/**
+ * @brief create new label in labels array (n_lbls has no be increased manually outside the function)
+*/
 static int  LabelCtor     (Label labels[], int n_lbls, int byte_pos, const char * name);
+/**
+ * @brief delete all the labels from the labels array, free the memory
+*/
 static int  LabelDtor     (Label labels[], int n_lbls);
+/**
+ * @brief return position of label with name token in labels array
+*/
 static int  LabelFind     (Label labels[], int n_lbls, char * token);
 
+/**
+ * @brief put cmd-code with argument val (int) to prog-code array
+*/
 static int  EmitCodeArg   (char * prog_code, int * n_bytes, char code, int val);
+/**
+ * @brief put cmd-code with argument reg_id (char) to prog-code array
+*/
 static int  EmitCodeReg   (char * prog_code, int * n_bytes, char code, char reg_id);
+/**
+ * @brief put cmd-code with argument val (int) + reg_id (char) to prog-code array
+*/
 static int  EmitCodeSum   (char * prog_code, int * n_bytes, char code, int val, char reg_id);
+/**
+ * @brief put cmd-code without argument to prog-code array
+*/
 static int  EmitCodeNoArg (char * prog_code, int * n_bytes, char code);
 
+/**
+ * @brief put all the words to an array separated by blanks
+*/
 static int  TokenizeText  (char ** text_ready, size_t n_lines, char * text_tokenized);
-static char ScanRegId     (const char * token);
+// /**
+//  * @brief get register id from the token (r%cx)
+// */
+// static char ScanRegId     (const char * token);
+/**
+ * @brief check if register name is allowed
+*/
 static int  CorrectRegId  (int reg_id);
 
+/**
+ * @brief check if token has : in the end = is label
+*/
 static int IsLabel (const char * token);
 
 const int MAX_REGS = 26; //* duplicate, register is to be checked in processor
@@ -300,6 +333,10 @@ int TranslateProgram (char * text, char * prog_code) {
             else if (strcmp(token, "mul") == 0)
             {
                 EmitCodeNoArg(prog_code, &n_bytes, CMD_MUL);
+            }
+            else if (strcmp(token, "sqrt") == 0)
+            {
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_SQRT);
             }
             else if (strcmp(token, "div") == 0)
             {
@@ -724,22 +761,22 @@ static int EmitCodeNoArg (char * prog_code, int * n_bytes, char code) {
 /**
  * @brief receives token and says if it is register or not
 */
-static char ScanRegId (const char * token) {
+// static char ScanRegId (const char * token) {
 
-    assert(token);
+//     assert(token);
 
-    char reg_id = 0;
-    int symbs = 0;
+//     char reg_id = 0;
+//     int symbs = 0;
 
-    if (sscanf(token, "r%cx %n", &reg_id, &symbs)) {
+//     if (sscanf(token, "r%cx %n", &reg_id, &symbs)) {
 
-        reg_id -= 'a';
+//         reg_id -= 'a';
 
-        return reg_id;
-    }
+//         return reg_id;
+//     }
 
-    return -1; // token does not match register template
-}
+//     return -1; // token does not match register template
+// }
 
 static int CorrectRegId (int reg_id)
 {

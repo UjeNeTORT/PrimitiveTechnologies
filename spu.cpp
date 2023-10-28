@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "commands.h"
 #include "spu.h"
@@ -14,10 +15,11 @@ static int RunBin (const char * in_fname);
 static int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
 static int SPUDtor (SPU * spu);
 
-static int MakePrecise (int arg, MultDblFrom action);
+// static int MakePrecise (int arg, MultDblFrom action);
 
 static int   GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
 static int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
+// static int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[]);
 
 static Elem_t PopCmpTopStack (stack * stk_ptr);
 static int    DivideInts     (int numerator, int denominator);
@@ -193,6 +195,22 @@ int RunBin (const char * in_fname) {
                 break;
             }
 
+            case CMD_SQRT:
+            {
+                pop_err = POP_NO_ERR;
+                val = 0;
+                val = PopStack(&my_spu.stk, &pop_err);
+                val = (int) sqrt(val);
+
+                fprintf(stderr, "# sqrt: %d\n", val);
+
+                PushStack(&my_spu.stk, val);
+
+                ip += sizeof(char);
+
+                break;
+            }
+
             case CMD_DIV:
             {
                 pop_err = POP_NO_ERR;
@@ -211,7 +229,7 @@ int RunBin (const char * in_fname) {
 
             case CMD_CALL:
             {
-                PushStack(&my_spu.call_stk, ip + sizeof(char) +  sizeof(int));
+                PushStack(&my_spu.call_stk, (Elem_t)(ip + sizeof(char) + sizeof(int)));
 
                 memcpy(&ip, (prog_code + ip + sizeof(char)), sizeof(int));
 
@@ -393,14 +411,15 @@ int RunBin (const char * in_fname) {
     return 0;
 }
 
-int MakePrecise (int arg, MultDblFrom action)
-{
-    if (action == MultDblFrom::MULT)
-        return arg * STK_PRECISION;
+// int MakePrecise (int arg, MultDblFrom action)
+// {
+//     if (action == MultDblFrom::MULT)
+//         return arg * STK_PRECISION;
 
-    else if (action == MultDblFrom::DIV)
-        return arg / STK_PRECISION;
-}
+//     else
+//         return arg / STK_PRECISION;
+
+// }
 
 int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
 {
@@ -440,7 +459,7 @@ int GetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     if (cmd & ARG_MEMRY_VAL)
     {
         res = RAM[res];
-        sleep(0.2);
+        sleep(1);
     }
 
     return res;
@@ -524,6 +543,42 @@ int * SetArg (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
     return NULL;
 }
 
+// int * SetArgNew (const char * prog_code, size_t * ip, int gp_regs[], int RAM[])
+// {
+//     assert(prog_code);
+//     assert(ip);
+//     assert(gp_regs);
+//     assert(RAM);
+
+//     char cmd = 0;
+//     memcpy(&cmd, (prog_code + *ip), sizeof(char));
+
+//     (*ip) += sizeof(char);
+
+//     int res     = 0;
+//     int tmp_res = 0;
+
+//     // int * ram_ptr = NULL;
+//     // int * reg_ptr = NULL;
+
+//     if (cmd & ARG_IMMED_VAL)
+//     {
+//         memcpy(&tmp_res, (prog_code + *ip), sizeof(int));
+//         res = tmp_res;
+
+//         (*ip) += sizeof(int);
+//     }
+//     if (cmd & ARG_REGTR_VAL)
+//     {
+//         // reg_ptr = &gp_regs[tmp_res];
+//         res    += gp_regs[tmp_res];
+
+//         (*ip) += sizeof(char);
+//     }
+
+//     return 0;
+// }
+
 int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size)
 {
     assert(spu);
@@ -559,6 +614,8 @@ int SPUDtor (SPU * spu)
 
     memset(spu->RAM, 0xcc, SPU_RAM_WIDTH * SPU_RAM_HIGHT * sizeof(int));
     free(spu->RAM);
+
+    return 0;
 }
 
 Elem_t PopCmpTopStack(stack * stk_ptr) {

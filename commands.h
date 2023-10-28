@@ -40,6 +40,7 @@ enum CMDS {
     CMD_JF   = 16,
     CMD_CALL = 17,
     CMD_RET  = 18,
+    CMD_SQRT = 19,
 };
 
 // // ??
