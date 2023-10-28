@@ -571,38 +571,12 @@ int TranslateProgram (char * text, char * prog_code) {
 
                 EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JNE, cmd_ptr);
             }
-            else if (strcmp(token, "jf")  == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
 
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to jf given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JF, cmd_ptr);
-            }
             else
-        {
-            fprintf(stderr, "# Syntax error! No command \"%s\" (%d) found. Bye bye looser!\n", token, n_bytes);
-            abort();
-        }
+            {
+                fprintf(stderr, "# Syntax error! No command \"%s\" (%d) found. Bye bye looser!\n", token, n_bytes);
+                abort();
+            }
 
             memset(token, 0, MAX_CMD); // clean memory in token // todo catch errors
             memset(temp_token, 0, MAX_CMD);

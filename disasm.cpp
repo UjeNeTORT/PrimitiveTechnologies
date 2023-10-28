@@ -337,19 +337,6 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
                 break;
             }
 
-            case CMD_JF:
-            {
-                if (0)
-                {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "jf", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
-                }
-
-                break;
-            }
-
             default:
             {
                 fprintf(stderr, "# Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
