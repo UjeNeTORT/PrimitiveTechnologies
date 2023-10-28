@@ -42,10 +42,7 @@ static int  EmitCodeNoArg (char * prog_code, int * n_bytes, char code);
  * @brief put all the words to an array separated by blanks
 */
 static int  TokenizeText  (char ** text_ready, size_t n_lines, char * text_tokenized);
-// /**
-//  * @brief get register id from the token (r%cx)
-// */
-// static char ScanRegId     (const char * token);
+
 /**
  * @brief check if register name is allowed
 */
@@ -726,26 +723,6 @@ static int EmitCodeNoArg (char * prog_code, int * n_bytes, char code) {
 
     return 0;
 }
-
-/**
- * @brief receives token and says if it is register or not
-*/
-// static char ScanRegId (const char * token) {
-
-//     assert(token);
-
-//     char reg_id = 0;
-//     int symbs = 0;
-
-//     if (sscanf(token, "r%cx %n", &reg_id, &symbs)) {
-
-//         reg_id -= 'a';
-
-//         return reg_id;
-//     }
-
-//     return -1; // token does not match register template
-// }
 
 static int CorrectRegId (int reg_id)
 {
