@@ -234,6 +234,14 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
                 break;
             }
 
+            case CMD_SQRT:
+            {
+                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "sqrt", symbs);
+                ip++;
+
+                break;
+            }
+
             case CMD_DIV:
             {
                 FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "div", symbs);

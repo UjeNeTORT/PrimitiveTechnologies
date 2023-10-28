@@ -643,5 +643,5 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
 }
 
  int DivideInts(int numerator, int denominator) {
-    return (int) ((float) numerator / (float) denominator * STK_PRECISION);
+    return (int) ((float) numerator / (float) denominator);
  }
