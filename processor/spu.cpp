@@ -461,7 +461,6 @@ int GetArg (const char * prog_code, size_t ip, int gp_regs[], int RAM[])
 
 int * SetArg (const char * prog_code, size_t ip, int gp_regs[], int RAM[])
 {
-    // todo validate cmd code and put there call from
 
     assert(prog_code);
     assert(ip);
@@ -543,18 +542,18 @@ int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_siz
 
     if (CtorStack(&(spu->stk), stack_capacity) != CTOR_NO_ERR)
     {
-        fprintf(stderr, "Stack Constructor returned error (TODO TODO TODO)\n"); // todo
-        abort();                                                                // aborting is justified
+        fprintf(stderr, "Stack Constructor returned error\n");
+        abort();                                                    // aborting is justified
     }
 
     if (CtorStack(&(spu->call_stk), call_stack_capacity) != CTOR_NO_ERR)
     {
-        fprintf(stderr, "Call-Stack Constructor returned error (TODO TODO TODO)\n"); // todo
-        abort();                                                                // aborting is justified
+        fprintf(stderr, "Call-Stack Constructor returned error\n");
+        abort();                                                    // aborting is justified
     }
 
     spu->RAM = (int *) calloc(ram_size, sizeof(int));
-    if (/*validateptr*/spu->RAM == NULL) // todo pointer validator
+    if (spu->RAM == NULL) // todo pointer validator
     {
         fprintf(stderr, "Unable to allocate memory for RAM\n");
         abort();                        // todo return enum. What if we dont use RAM in asm code? program shouldnt fall
