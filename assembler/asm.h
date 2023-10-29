@@ -1,5 +1,5 @@
-#ifndef COMPILER_H
-#define COMPILER_H
+#ifndef ASM_H
+#define ASM_H
 
 #include <assert.h>
 #include <ctype.h>
@@ -25,9 +25,9 @@ enum REG_ID_OUT {
     REG_ID_NOT_A_REG   = -1
 };
 
-static AsmResType AssembleMath      (const char * fin_name, const char * fout_name);
+static AsmResType Assemble      (const char * fin_name, const char * fout_name);
 static int        DecommentProgram  (char ** text, size_t n_lines);
 static int        TranslateProgram  (char * text, char * prog_code);
 static int        WriteCodeBin      (const char * fout_name, char * prog_code, size_t n_cmds);
 
-#endif // COMPILER_H
+#endif // ASM_H

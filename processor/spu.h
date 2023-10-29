@@ -15,22 +15,22 @@ const int SPU_RAM_HIGHT     = 10;  // for graphics
 const int STK_PRECISION = 100;
 
 typedef enum {
-    REACH_HLT = 0, //< reached hlt
-    REACH_END = 1, //< reached end
-    OCC_ERROR = 2, //< occured error
+    REACH_HLT   = 0, //< reached hlt
+    REACH_END   = 1, //< reached end
+    ILL_CDMCODE = 2, //< occured error
 } RunBinRes;
 
 struct SPU {
 
     // general purpose
     // also need instruction pointer register
-    int gp_regs[SPU_REGS_NUM];
+    Elem_t gp_regs[SPU_REGS_NUM];
 
     stack stk;
 
     stack call_stk;
 
-    int * RAM;
+    Elem_t * RAM;
 };
 
 #endif // PROCESSOR_H

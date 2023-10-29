@@ -72,7 +72,7 @@ int main(int argc, char * argv[]) {
     {
         if (strcmp(argv[argn], "--finname") == 0)
         {
-            AssembleMath(argv[argn + 1], BIN_FILENAME);
+            Assemble(argv[argn + 1], BIN_FILENAME);
             argn++;
         }
     }
@@ -84,7 +84,7 @@ int main(int argc, char * argv[]) {
 /**
  * @brief change commands from fin_name to their codes (from usr_cmd) fout_name. cmd_arr of usr_cmd structs is formed using ParseCmdNames func
 */
-AsmResType AssembleMath (const char * fin_name, const char * fbinout_name) {
+AsmResType Assemble (const char * fin_name, const char * fbinout_name) {
 
     assert(fin_name);
     assert(fbinout_name);

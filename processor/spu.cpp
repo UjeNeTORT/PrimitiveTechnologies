@@ -15,21 +15,21 @@ const int SHOW_INTERMED_INFO = 0;
     if (SHOW_INTERMED_INFO)                   \
         fprintf(stderr, format, __VA_ARGS__); \
 
-static size_t        ReadByteCode (const char * in_fname, cmd_code_t ** prog_code);
-static RunBinRes     RunBin       (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu);
+static size_t    ReadByteCode   (const char * in_fname, cmd_code_t ** prog_code);
+static RunBinRes RunBin         (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu);
 
-static int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
-static int SPUDtor (SPU * spu);
+static int       SPUCtor        (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
+static int       SPUDtor        (SPU * spu);
 
-static Elem_t   GetArg         (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
-static Elem_t * SetArg         (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
+static Elem_t    GetPushArg     (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
+static Elem_t *  GetPopArgAddr  (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
 
-static int   CalcIpOffset   (cmd_code_t cmd);
-static int   CmdCodeIsValid (cmd_code_t cmd);
+static int       CalcIpOffset   (cmd_code_t cmd);
+static int       CmdCodeIsValid (cmd_code_t cmd);
 
-static Elem_t PopCmpTopStack (stack * stk_ptr);
-static Elem_t DivideInts     (Elem_t numerator, Elem_t denominator);
-static Elem_t MultInts       (Elem_t frst, Elem_t scnd);
+static Elem_t    PopCmpTopStack (stack * stk_ptr);
+static Elem_t    DivideInts     (Elem_t numerator, Elem_t denominator);
+static Elem_t    MultInts       (Elem_t frst, Elem_t scnd);
 
 int main(int argc, char * argv[]) {
 
@@ -109,7 +109,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
             case CMD_PUSH:
             {
-                Elem_t arg = GetArg(prog_code, ip, spu->gp_regs, spu->RAM);
+                Elem_t arg = GetPushArg(prog_code, ip, spu->gp_regs, spu->RAM);
 
                 PushStack(&spu->stk, arg);
 
@@ -124,7 +124,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             {
                 if (cmd & ARG_TYPE_MSK)
                 {
-                    Elem_t * arg_ptr = SetArg(prog_code, ip, spu->gp_regs, spu->RAM);
+                    Elem_t * arg_ptr = GetPopArgAddr(prog_code, ip, spu->gp_regs, spu->RAM);
 
                     if (arg_ptr == NULL)
                     {
@@ -265,7 +265,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             {
                 PushStack(&spu->call_stk, (Elem_t)(ip + sizeof(cmd_code_t) + sizeof(Elem_t)));
 
-                memcpy(&ip, prog_code + ip + sizeof(cmd_code_t), sizeof(Elem_t));
+                ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                 PRINTF_INTERMED_INFO("# (%s) Call to %lu\n", "proc", ip);
 
@@ -284,7 +284,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
             case CMD_JMP:
             {
-                memcpy(&ip, prog_code + ip + sizeof(cmd_code_t), sizeof(Elem_t));
+                ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                 PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
 
@@ -296,7 +296,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
                 if (cmp_res > 0)
                 {
-                    memcpy(&ip, (prog_code + ip + sizeof(cmd_code_t)), sizeof(Elem_t));
+                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
@@ -313,7 +313,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
                 if (cmp_res >= 0)
                 {
-                    memcpy(&ip, (prog_code + ip + sizeof(cmd_code_t)), sizeof(Elem_t));
+                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
@@ -331,7 +331,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
                 if (cmp_res < 0)
                 {
-                    memcpy(&ip, (prog_code + ip + sizeof(cmd_code_t)), sizeof(Elem_t));
+                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
@@ -349,7 +349,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
                 if (cmp_res <= 0)
                 {
-                    memcpy(&ip, (prog_code + ip + sizeof(cmd_code_t)), sizeof(Elem_t));
+                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
@@ -367,7 +367,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
                 if (cmp_res == 0)
                 {
-                    memcpy(&ip, (prog_code + ip + sizeof(cmd_code_t)), sizeof(Elem_t));
+                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
@@ -385,7 +385,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
                 if (cmp_res != 0)
                 {
-                    memcpy(&ip, (prog_code + ip + sizeof(cmd_code_t)), sizeof(Elem_t));
+                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
 
                     PRINTF_INTERMED_INFO("# (%s) Jmp to %lu\n", "proc", ip);
                 }
@@ -399,9 +399,9 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
             default:
             {
-                fprintf(stderr, "Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", cmd, ip);
+                fprintf(stderr, "SIGILL! Illegal instruction \"%d\" (%lu)\n", cmd, ip);
 
-                return OCC_ERROR;
+                return ILL_CDMCODE;
             }
         }
         val = 0;
@@ -410,7 +410,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
     return REACH_END;
 }
 
-Elem_t GetArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[])
+Elem_t GetPushArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[])
 {
     assert(prog_code);
     assert(ip);
@@ -420,6 +420,12 @@ Elem_t GetArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t
     cmd_code_t cmd = 0;
     memcpy(&cmd, (prog_code + ip), sizeof(cmd_code_t));
 
+    if (!CmdCodeIsValid(cmd))
+    {
+        fprintf(stderr, "Forbidden command code %d\n", cmd);
+        abort();
+    }
+
     ip += sizeof(cmd_code_t);
 
     Elem_t res     = 0;
@@ -427,17 +433,17 @@ Elem_t GetArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t
 
     if (cmd & ARG_IMMED_VAL)
     {
-        memcpy(&tmp_res, (prog_code + ip), sizeof(Elem_t));
+        memcpy(&tmp_res, prog_code + ip, sizeof(Elem_t));
         res += tmp_res * STK_PRECISION; // we multiply only here because in other cases values in ram and in regs are allready multiplied
 
         tmp_res = 0;
 
-        ip += sizeof(int);
+        ip += sizeof(Elem_t);
     }
 
     if (cmd & ARG_REGTR_VAL)
     {
-        memcpy(&tmp_res, (prog_code + ip), sizeof(cmd_code_t));
+        memcpy(&tmp_res, prog_code + ip, sizeof(cmd_code_t));
         res += gp_regs[tmp_res]; // no precision operations as in registers all values are already multiplied by precision
 
         tmp_res = 0;
@@ -454,16 +460,15 @@ Elem_t GetArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t
     return res;
 }
 
-int * SetArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[])
+Elem_t * GetPopArgAddr (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[])
 {
-
     assert(prog_code);
     assert(ip);
     assert(gp_regs);
     assert(RAM);
 
-    char cmd = 0;
-    memcpy(&cmd, (prog_code + ip), sizeof(cmd_code_t));
+    cmd_code_t cmd = 0;
+    memcpy(&cmd, prog_code + ip, sizeof(cmd_code_t));
 
     if (!CmdCodeIsValid(cmd))
     {
@@ -473,22 +478,22 @@ int * SetArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t 
 
     ip += sizeof(cmd_code_t);
 
-    int tmp_res = 0;
-    int imm_storage = 0;
+    Elem_t tmp_res = 0;
+    Elem_t imm_storage = 0;
 
-    int * ram_ptr = NULL;
-    int * reg_ptr = NULL;
+    Elem_t * ram_ptr = NULL;
+    Elem_t * reg_ptr = NULL;
 
     if (cmd & ARG_IMMED_VAL)
     {
-        memcpy(&tmp_res, (prog_code + ip), sizeof(Elem_t));
+        memcpy(&tmp_res, prog_code + ip, sizeof(Elem_t));
         imm_storage = tmp_res;
 
-        ip += sizeof(int);
+        ip += sizeof(Elem_t);
     }
     if (cmd & ARG_REGTR_VAL)
     {
-        memcpy(&tmp_res, (prog_code + ip), sizeof(cmd_code_t));
+        memcpy(&tmp_res, prog_code + ip, sizeof(cmd_code_t));
         imm_storage += gp_regs[tmp_res];
         reg_ptr = &gp_regs[tmp_res];
 

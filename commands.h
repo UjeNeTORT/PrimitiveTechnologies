@@ -23,7 +23,7 @@ struct Label
 };
 
 enum CMDS {
-    CMD_HLT  = 0b0001'1111,
+    CMD_HLT  = 31,
     CMD_PUSH =  1,
     CMD_POP  =  2,
     CMD_IN   =  3,
