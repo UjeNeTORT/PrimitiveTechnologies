@@ -9,8 +9,10 @@
 const int SPU_STK_CAPA      = 10000;
 const int SPU_CALL_STK_CAPA = 100;
 const int SPU_REGS_NUM      = 26;  // 26 letters in english alphabet
-const int SPU_RAM_WIDTH     = 20;  // for graphics
-const int SPU_RAM_HIGHT     = 20;  // for graphics
+
+const int SPU_GRAM_WIDTH     = 21;  // for graphics
+const int SPU_GRAM_HIGHT     = 21;  // for graphics
+const int GRAM_MAPPING       = 100;
 
 const int STK_PRECISION = 100;
 

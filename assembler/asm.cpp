@@ -347,6 +347,14 @@ int TranslateProgram (char * text, char * prog_code) {
             {
                 EmitCodeNoArg(prog_code, &n_bytes, CMD_SQR);
             }
+            else if (strcmp(token, "mod") == 0)
+            {
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_MOD);
+            }
+            else if (strcmp(token, "idiv") == 0)
+            {
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_IDIV);
+            }
             else if (IsLabel(token))
             {
                 if (n_run == RUN_LBL_UPD)

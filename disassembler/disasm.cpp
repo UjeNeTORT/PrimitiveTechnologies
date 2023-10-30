@@ -98,40 +98,52 @@
 const int    LISTING_CODE_TEXT_DISTANCE = 20;
 const char * DISASM_FILENAME            = "disasmed.txt";
 
-static int DisAssemble(const char * asm_fname, const char * out_fname);
+static size_t ReadByteCode (const char * in_fname, cmd_code_t ** prog_code);
+static int    DisAssemble  (const cmd_code_t * prog_code, size_t n_bytes, const char * out_fname);
 
-int main() {
-
+int main()
+{
     fprintf(stdout, "\n"
                     "# Disassembler by NeTort, 2023\n"
                     "# Working...\n\n");
 
-    DisAssemble(BIN_FILENAME, DISASM_FILENAME);
+    cmd_code_t * prog_code = NULL;
+    size_t n_bytes = ReadByteCode(BIN_FILENAME, &prog_code);
+
+    DisAssemble(prog_code, n_bytes, DISASM_FILENAME);
+
+    free(prog_code);
 
     return 0;
 }
 
-int DisAssemble(const char * asm_fname, const char * out_fname) {
+size_t ReadByteCode (const char * in_fname, cmd_code_t ** prog_code)
+{
+    assert(in_fname);
+    assert(prog_code);
 
-    assert (asm_fname);
-    assert (out_fname);
-
-    FILE * asm_file = fopen(asm_fname, "rb");
+    FILE * in_file = fopen(in_fname, "rb");
 
     // read size of the long long byte code array
     size_t n_bytes = 0;
-    fread(&n_bytes, sizeof(size_t), 1, asm_file);
+    fread(&n_bytes, sizeof(size_t), 1, in_file);
 
     // read byte code array: form and fill prog_code array
-    char * prog_code = (char *) calloc(n_bytes, sizeof(char));
-    assert(prog_code);
-    char * const prog_code_init = prog_code;
+    *prog_code = (cmd_code_t *) calloc(n_bytes, sizeof(cmd_code_t));
+    assert(*prog_code);
 
     size_t readen = 0;
-    readen = fread(prog_code, sizeof(char), n_bytes, asm_file);
+    readen = fread(*prog_code, sizeof(cmd_code_t), n_bytes, in_file);
     assert(readen == n_bytes);
 
-    fclose(asm_file);
+    fclose(in_file);
+
+    return n_bytes;
+}
+
+int DisAssemble (const cmd_code_t * prog_code, size_t n_bytes, const char * out_fname)
+{
+    assert (prog_code);
 
     FILE * fout = fopen(out_fname, "wb");
 
@@ -153,10 +165,11 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
 
             case CMD_PUSH:
             {
-                val = *(int *)(prog_code + ip + 1);
-
                 if (prog_code[ip] & ARG_IMMED_VAL)
+                {
+                    val = *(int *)(prog_code + ip + 1);
                     reg_id = *(char *)(prog_code + ip + 1 + 4);
+                }
                 else
                     reg_id = *(char *)(prog_code + ip + 1);
 
@@ -174,12 +187,16 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
 
             case CMD_POP:
             {
-                val = *(int *)(prog_code + ip + 1);
+
 
                 if (prog_code[ip] & ARG_IMMED_VAL)
-                    reg_id = *(char *)(prog_code + ip + 1 + 4);
+                {
+                    memcpy(&val, prog_code + ip + 1, sizeof(int));
+                    memcpy(&reg_id, prog_code + ip + 1 + 4, sizeof(char));
+                }
                 else
-                    reg_id = *(char *)(prog_code + ip + 1);
+                    // reg_id = *(char *)(prog_code + ip + 1);
+                    memcpy(&reg_id, prog_code + ip + 1, sizeof(char));
 
                 FPRINTF_POP(fout, ip, prog_code[ip], val, reg_id, "pop", symbs);
 
@@ -252,6 +269,22 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
             case CMD_SQR:
             {
                 FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "sqr", symbs);
+                ip++;
+
+                break;
+            }
+
+            case CMD_MOD:
+            {
+                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "mod", symbs);
+                ip++;
+
+                break;
+            }
+
+            case CMD_IDIV:
+            {
+                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "idiv", symbs);
                 ip++;
 
                 break;
@@ -355,7 +388,44 @@ int DisAssemble(const char * asm_fname, const char * out_fname) {
     }
 
     fclose(fout);
-    free(prog_code_init);
 
     return 0;
 }
+
+// int DisasmPop(FILE * stream, cmd_code_t * prog_code, size_t ip, const char * name, int symbs)
+// {
+//     fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);
+//     if (cmd & ARG_IMMED_VAL)
+//     {
+//         fprintf(stream, "%d ", imm_arg);
+//     }
+//     if (cmd & ARG_REGTR_VAL)
+//     {
+//         fprintf(stream, "%d ", reg_id);
+//     }
+//     symbs = LISTING_CODE_TEXT_DISTANCE - symbs;
+//     for (int i = 0; i < symbs; i++)
+//         fprintf(stream, " ");
+
+//     fprintf(stream, "%s ", name);
+//     if (cmd & ARG_MEMRY_VAL)
+//     {
+//         fprintf(stream, "[");
+//     }
+//     if (cmd & ARG_REGTR_VAL)
+//     {
+//         fprintf(stream, "r%cx", 'a' + reg_id);
+//         if (cmd & ARG_IMMED_VAL) {
+//             fprintf(stream, " + ");
+//         }
+//     }
+//     if (cmd & ARG_IMMED_VAL)
+//     {
+//         fprintf(stream, "%d", imm_arg);
+//     }
+//     if (cmd & ARG_MEMRY_VAL)
+//     {
+//         fprintf(stream, "]");
+//     }
+//     fprintf(stream, "\n");
+// }

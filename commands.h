@@ -42,7 +42,9 @@ enum CMDS {
     CMD_CALL = 16,
     CMD_RET  = 17,
     CMD_SQRT = 18,
-    CMD_SQR = 19,
+    CMD_SQR  = 19,
+    CMD_MOD  = 20,
+    CMD_IDIV = 21,
 };
 
 #endif // COMMANDS_H
