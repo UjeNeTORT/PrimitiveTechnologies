@@ -6,11 +6,11 @@
 
 #include "../stacklib/stack.h"
 
-const int SPU_STK_CAPA      = 1000;
+const int SPU_STK_CAPA      = 10000;
 const int SPU_CALL_STK_CAPA = 100;
-const int SPU_REGS_NUM      = 26;   // because i want 4
-const int SPU_RAM_WIDTH     = 10;  // for graphics
-const int SPU_RAM_HIGHT     = 10;  // for graphics
+const int SPU_REGS_NUM      = 26;  // 26 letters in english alphabet
+const int SPU_RAM_WIDTH     = 20;  // for graphics
+const int SPU_RAM_HIGHT     = 20;  // for graphics
 
 const int STK_PRECISION = 100;
 

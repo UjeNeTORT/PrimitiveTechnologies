@@ -120,7 +120,6 @@ AsmResType Assemble (const char * fin_name, const char * fbinout_name) {
 
     //====================== FREE ALL THE ALLOCATED MEMORY ===========================
 
-    // TODO to func
     free(prog_code);
     free(in_buf);
     free(in_text);
@@ -336,13 +335,17 @@ int TranslateProgram (char * text, char * prog_code) {
             {
                 EmitCodeNoArg(prog_code, &n_bytes, CMD_MUL);
             }
+            else if (strcmp(token, "div") == 0)
+            {
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_DIV);
+            }
             else if (strcmp(token, "sqrt") == 0)
             {
                 EmitCodeNoArg(prog_code, &n_bytes, CMD_SQRT);
             }
-            else if (strcmp(token, "div") == 0)
+            else if (strcmp(token, "sqr") == 0)
             {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_DIV);
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_SQR);
             }
             else if (IsLabel(token))
             {

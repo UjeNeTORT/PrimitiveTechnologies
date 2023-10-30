@@ -61,7 +61,7 @@ typedef size_t Canary_t;
 //-------------------------------------------------------------------------------------
 const char * const LOG_FILE = "log.log";
 
-const int    MX_STK             = 1000;
+const int    MX_STK             = 100000;
 const int    POISON             = 0xD00D1E;
 const size_t MAX_ERR_MSG_STRING = 400;
 
