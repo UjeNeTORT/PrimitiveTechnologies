@@ -315,6 +315,10 @@ int TranslateProgram (char * text, char * prog_code) {
             {
                 EmitCodeNoArg(prog_code, &n_bytes, CMD_HLT);
             }
+            else if (strcmp(token, "frame") == 0)
+            {
+                EmitCodeNoArg(prog_code, &n_bytes, ARG_MEMRY_VAL | CMD_FRAME);
+            }
             else if (strcmp(token, "in")  == 0)
             {
                 EmitCodeNoArg(prog_code, &n_bytes, CMD_IN);

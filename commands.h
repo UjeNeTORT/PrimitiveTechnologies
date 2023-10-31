@@ -45,6 +45,7 @@ enum CMDS {
     CMD_SQR  = 19,
     CMD_MOD  = 20,
     CMD_IDIV = 21,
+    CMD_FRAME = 22, // prints gram
 };
 
 #endif // COMMANDS_H

@@ -106,20 +106,29 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
         cmd = prog_code[ip];
 
-        // printf("ip = %lu\n", ip);
-        // printf("rpx = %d\n", spu->gp_regs[15]);
-
         switch (cmd & OPCODE_MSK)
         {
             case CMD_HLT:
             {
                 PRINTF_INTERMED_INFO("# (%s - %3ld) Hlt encountered, goodbye!\n", "proc", ip);
 
-                for (int i = 0; i < SPU_GRAM_HIGHT; i++, printf("\n"))
-                    for (int j = 0; j < SPU_GRAM_WIDTH; j++)
-                        printf("%c", spu->RAM[GRAM_MAPPING + i * SPU_GRAM_HIGHT + j] / STK_PRECISION);
-
                 return REACH_HLT;
+            }
+
+            case CMD_FRAME:
+            {
+                for (int i = 0; i < SPU_GRAM_HIGHT; i++, printf("\n"))
+                {
+                    for (int j = 0; j < SPU_GRAM_WIDTH; j++)
+                    {
+                        printf("%c%c", spu->RAM[GRAM_MAPPING + i * SPU_GRAM_HIGHT + j] / STK_PRECISION,
+                                       spu->RAM[GRAM_MAPPING + i * SPU_GRAM_HIGHT + j] / STK_PRECISION);
+                    }
+                }
+
+                ip += CalcIpOffset(cmd);
+
+                break;
             }
 
             case CMD_PUSH:
@@ -200,7 +209,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             {
                 // PUSH(POP() + POP())
                 pop_err = POP_NO_ERR;
-                val = 0;
                 val = PopStack(&spu->stk, &pop_err) + PopStack(&spu->stk, &pop_err);
                 PushStack(&spu->stk, val);
 
@@ -214,7 +222,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             case CMD_SUB:
             {
                 pop_err = POP_NO_ERR;
-                val = 0;
                 val -= PopStack(&spu->stk, &pop_err);
                 val += PopStack(&spu->stk, &pop_err);
                 PushStack(&spu->stk, val);
@@ -229,7 +236,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             case CMD_MUL:
             {
                 pop_err = POP_NO_ERR;
-                val = 0;
                 val = MultInts(PopStack(&spu->stk, &pop_err), PopStack(&spu->stk, &pop_err));
 
                 PRINTF_INTERMED_INFO("# (%s - %3ld) Mul: %d\n", "proc", ip_init, val);
@@ -263,7 +269,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             case CMD_SQRT:
             {
                 pop_err = POP_NO_ERR;
-                val = 0;
                 val = PopStack(&spu->stk, &pop_err);
 
                 val = (int) sqrt(val * STK_PRECISION);
@@ -280,7 +285,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             case CMD_SQR:
             {
                 pop_err = POP_NO_ERR;
-                val = 0;
                 val = PopStack(&spu->stk, &pop_err);
 
                 val = val * val / STK_PRECISION;
@@ -297,7 +301,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             case CMD_MOD:
             {
                 pop_err = POP_NO_ERR;
-                val = 0;
                 Elem_t denominator = PopStack(&spu->stk, &pop_err);
                 Elem_t numerator   = PopStack(&spu->stk, &pop_err);
 
@@ -315,7 +318,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             case CMD_IDIV:
             {
                 pop_err = POP_NO_ERR;
-                val = 0;
                 Elem_t denominator = PopStack(&spu->stk, &pop_err);
                 Elem_t numerator   = PopStack(&spu->stk, &pop_err);
 

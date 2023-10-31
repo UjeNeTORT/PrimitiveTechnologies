@@ -226,6 +226,14 @@ int DisAssemble (const cmd_code_t * prog_code, size_t n_bytes, const char * out_
                 break;
             }
 
+            case CMD_FRAME:
+            {
+                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "frame", symbs);
+                ip++;
+
+                break;
+            }
+
             case CMD_ADD:
             {
                 FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "add", symbs);
