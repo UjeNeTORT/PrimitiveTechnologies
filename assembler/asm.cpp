@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "asm.h"
-#include "../commands.h"
+#include "../enums.h"
 #include "../text_processing_lib/text_buf.h"
 
 /**
@@ -58,6 +58,12 @@ static int  CorrectRegId  (int reg_id);
 */
 static int IsLabel (const char * token);
 
+static int ProcessPushArguments (cmd_code_t * prog_code, int * n_bytes, char ** text);
+
+static int ProcessPopArguments (cmd_code_t * prog_code, int * n_bytes, char ** text);
+
+static int ProcessJmpArguments (char ** text, size_t n_run, Label labels[], int n_lbls);
+
 const int MAX_REGS = 26; //* duplicate, register is to be checked in processor
 
 int main(int argc, char * argv[]) {
@@ -76,7 +82,6 @@ int main(int argc, char * argv[]) {
             argn++;
         }
     }
-
 
     return 0;
 }
@@ -109,6 +114,7 @@ AsmResType Assemble (const char * fin_name, const char * fbinout_name) {
     //========================== CREATE BYTECODE ARRAY ===============================
 
     char * prog_code = (char *) calloc(n_tokens, sizeof(int));
+    printf("prog_code[%p]\n", prog_code);
 
     //====================== TRANSLATE TEXT INTO BYTE-CODES ==========================
 
@@ -128,8 +134,8 @@ AsmResType Assemble (const char * fin_name, const char * fbinout_name) {
     return ASM_OUT_NO_ERR;
 }
 
-int DecommentProgram (char ** text, size_t n_lines) {
-
+int DecommentProgram (char ** text, size_t n_lines)
+{
     assert(text);
 
     //====================== DEL COMMENTS =======================
@@ -160,12 +166,23 @@ int TranslateProgram (char * text, char * prog_code) {
     char temp_token[MAX_CMD] = "";
     int n_bytes = 0;
 
-    char reg_id = 0;
-    int  val    = 0;
-    int  symbs  = 0;
+    int symbs = 0;
 
     char * text_init = text;
     char * prog_code_init = prog_code;
+
+    #define DEF_CMD(name, num, text, spu_code, have_arg, code_have_arg) \
+        else if (strcmp(token, text) == 0)                              \
+        {                                                               \
+            if (have_arg)                                               \
+            {                                                           \
+                code_have_arg;                                          \
+            }                                                           \
+            else                                                        \
+            {                                                           \
+                EmitCodeNoArg(prog_code, &n_bytes, CMD_##name);         \
+            }                                                           \
+        }
 
     for (size_t n_run = 0; n_run < RUNS_CNT; n_run++)
     {
@@ -180,185 +197,14 @@ int TranslateProgram (char * text, char * prog_code) {
 
             text += symbs;
 
-            if (strcmp(token, "push") == 0)
+            printf("n_bytes = %d\n", n_bytes);
+            if (0)
             {
-                if (sscanf(text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
-                    sscanf(text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
-                {
-                    reg_id -= 'a';
-                    if (!CorrectRegId(reg_id))
-                    {
-                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
-                        abort();
-                    }
-
-                    EmitCodeSum(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | ARG_REGTR_VAL | CMD_PUSH, val, reg_id);
-
-                    text += symbs;
-                }
-                else if (sscanf(text, " [ r%cx ] %n", &reg_id, &symbs) == 1)
-                {
-                    reg_id -= 'a';
-                    if (!CorrectRegId(reg_id))
-                    {
-                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
-                        abort();
-                    }
-
-                    EmitCodeReg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | CMD_PUSH, reg_id);
-
-                    text += symbs;
-                }
-                else if (sscanf(text, " [ %d ] %n", &val, &symbs) == 1)
-                {
-
-                    EmitCodeArg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | CMD_PUSH, val);
-
-                    text += symbs;
-                }
-                else if (sscanf(text, "r%cx + %d %n", &reg_id, &val, &symbs) == 2 ||
-                         sscanf(text, "%d + r%cx %n", &val, &reg_id, &symbs) == 2)
-                {
-
-                    reg_id -= 'a';
-                    if (!CorrectRegId(reg_id))
-                    {
-                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
-                        abort();
-                    }
-
-                    EmitCodeSum(prog_code, &n_bytes, ARG_IMMED_VAL | ARG_REGTR_VAL | CMD_PUSH, val, reg_id);
-
-                    text += symbs;
-                }
-                else if (sscanf(text, "r%cx %n", &reg_id, &symbs) == 1)
-                {
-                    reg_id -= 'a';
-                    if (!CorrectRegId(reg_id))
-                    {
-                        // assert(!"Syntax Error!");
-                        fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed! Get rekt! hahahaah\n", reg_id + 'a');
-                        abort();
-                    }
-
-                    EmitCodeReg(prog_code, &n_bytes, ARG_REGTR_VAL | CMD_PUSH, reg_id);
-
-                    text += symbs;
-                }
-                else if (sscanf(text, "%d %n", &val, &symbs) == 1)
-                {
-                    EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_PUSH, val);
-
-                    text += symbs;
-                }
-                else
-                {
-                    fprintf(stderr, "Syntax Error! No command after \"push\" matches its argument type\n");
-                    abort();
-                }
+                ;
             }
-            else if (strcmp(token, "pop") == 0)
-            {
-                if (sscanf(text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
-                    sscanf(text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
-                {
-                    reg_id -= 'a';
-                    if (!CorrectRegId(reg_id))
-                    {
-                        fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed! Get rekt! hahahaah\n", reg_id + 'a', reg_id + 'a');
-                        abort();
-                    }
 
-                    EmitCodeSum(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | ARG_IMMED_VAL | CMD_POP, val, reg_id);
+            #include "../commands.h"
 
-                    text += symbs;
-                }
-                else if (sscanf(text, "[ r%cx ] %n", &reg_id, &symbs) == 1)
-                {
-                    reg_id -= 'a';
-                    if (!CorrectRegId(reg_id))
-                    {
-                        fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed! Get rekt! hahahaah\n", reg_id + 'a', reg_id + 'a');
-                        abort();
-                    }
-
-                    EmitCodeReg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | CMD_POP, reg_id);
-
-                    text += symbs;
-                }
-                else if (sscanf(text, "[ %d ] %n", &val, &symbs) == 1)
-                {
-                    EmitCodeArg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | CMD_POP, val);
-
-                    text += symbs;
-                }
-                else if (sscanf(text, "r%cx %n", &reg_id, &symbs) == 1)
-                {
-                    reg_id -= 'a';
-                    if (!CorrectRegId(reg_id))
-                    {
-                        fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed! Get rekt! hahahaah\n", reg_id + 'a', reg_id + 'a');
-                        abort();
-                    }
-
-                    EmitCodeReg(prog_code, &n_bytes, ARG_REGTR_VAL | CMD_POP, reg_id);
-
-                    text += symbs;
-                }
-                else
-                {
-                    EmitCodeNoArg(prog_code, &n_bytes, CMD_POP);
-                }
-
-                }
-            else if (strcmp(token, "hlt") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_HLT);
-            }
-            else if (strcmp(token, "frame") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, ARG_MEMRY_VAL | CMD_FRAME);
-            }
-            else if (strcmp(token, "in")  == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_IN);
-            }
-            else if (strcmp(token, "out") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_OUT);
-            }
-            else if (strcmp(token, "add") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_ADD);
-            }
-            else if (strcmp(token, "sub") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_SUB);
-            }
-            else if (strcmp(token, "mul") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_MUL);
-            }
-            else if (strcmp(token, "div") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_DIV);
-            }
-            else if (strcmp(token, "sqrt") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_SQRT);
-            }
-            else if (strcmp(token, "sqr") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_SQR);
-            }
-            else if (strcmp(token, "mod") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_MOD);
-            }
-            else if (strcmp(token, "idiv") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_IDIV);
-            }
             else if (IsLabel(token))
             {
                 if (n_run == RUN_LBL_UPD)
@@ -371,227 +217,6 @@ int TranslateProgram (char * text, char * prog_code) {
                     n_lbls++;
                 }
             }
-            else if (strcmp(token, "call") == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to call given!\n");
-                    abort();
-                }
-
-                text += symbs;
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_CALL, cmd_ptr);
-            }
-            else if (strcmp(token , "ret") == 0)
-            {
-                EmitCodeNoArg(prog_code, &n_bytes, CMD_RET);
-            }
-            else if (strcmp(token, "jmp") == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to jmp given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JMP, cmd_ptr);
-            }
-            else if (strcmp(token, "ja")  == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to ja given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JA, cmd_ptr);
-            }
-            else if (strcmp(token, "jae") == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to jae given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JAE, cmd_ptr);
-            }
-            else if (strcmp(token, "jb")  == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to jb given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JB, cmd_ptr);
-            }
-            else if (strcmp(token, "jbe") == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to jbe given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JBE, cmd_ptr);
-            }
-            else if (strcmp(token, "je")  == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to je given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JE, cmd_ptr);
-            }
-            else if (strcmp(token, "jne") == 0)
-            {
-                char lbl_name[MAX_CMD] = "";
-
-                if (sscanf(text, "%s %n", lbl_name, &symbs) != 1)
-                {
-                    fprintf(stderr, "Syntax Error! No label to jne given! Bye bye looser!\n");
-                    abort();
-                }
-
-                text += symbs; // "rax" len of string (assume all registers consist of )
-
-                int cmd_ptr = -1;
-
-                if (n_run == RUN_LBL_UPD)
-                {
-                    cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
-
-                    if (cmd_ptr == -1)
-                    {
-                        fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
-                        abort();
-                    }
-                }
-
-                EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JNE, cmd_ptr);
-            }
-
             else
             {
                 fprintf(stderr, "# Syntax error! No command \"%s\" (%d) found. Bye bye looser!\n", token, n_bytes);
@@ -603,9 +228,165 @@ int TranslateProgram (char * text, char * prog_code) {
 
         }
     }
+
+    #undef DEF_CMD
+
     LabelDtor(labels, n_lbls);
 
     return n_bytes;
+}
+
+static int ProcessJmpArguments (char ** text, size_t n_run, Label labels[], int n_lbls)
+{
+    char lbl_name[MAX_CMD] = "";
+
+    int symbs = 0;
+
+    if (sscanf(*text, "%s %n", lbl_name, &symbs) != 1)
+    {
+        fprintf(stderr, "Syntax Error! No label to jmp given! Bye bye looser!\n");
+        abort();
+    }
+
+    *text += symbs; // "rax" len of string (assume all registers consist of )
+
+    int cmd_ptr = -1;
+
+    if (n_run == RUN_LBL_UPD)
+    {
+        cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
+        if (cmd_ptr == -1)
+        {
+            fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
+            abort();
+        }
+    }
+
+    return cmd_ptr;
+}
+static int ProcessPushArguments (cmd_code_t * prog_code, int * n_bytes, char ** text)
+{
+    int  symbs  = 0;
+    char reg_id = 0;
+    int  val    = 0;
+
+    if (sscanf(*text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
+        sscanf(*text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
+    {
+        reg_id -= 'a';
+        if (!CorrectRegId(reg_id))
+        {
+            fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed!\n", reg_id + 'a');
+            abort();
+        }
+
+        EmitCodeSum(prog_code, n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | ARG_REGTR_VAL | CMD_PUSH, val, reg_id);
+        *text += symbs;
+    }
+    else if (sscanf(*text, " [ r%cx ] %n", &reg_id, &symbs) == 1)
+    {
+        reg_id -= 'a';
+        if (!CorrectRegId(reg_id))
+        {
+            fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed!\n", reg_id + 'a');
+            abort();
+        }
+
+        EmitCodeReg(prog_code, n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | CMD_PUSH, reg_id);
+        *text += symbs;
+    }
+    else if (sscanf(*text, " [ %d ] %n", &val, &symbs) == 1)
+    {
+        EmitCodeArg(prog_code, n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | CMD_PUSH, val);
+        *text += symbs;
+    }
+    else if (sscanf(*text, "r%cx + %d %n", &reg_id, &val, &symbs) == 2 ||
+             sscanf(*text, "%d + r%cx %n", &val, &reg_id, &symbs) == 2)
+    {
+        reg_id -= 'a';
+        if (!CorrectRegId(reg_id))
+        {
+            fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed!\n", reg_id + 'a');
+            abort();
+        }
+
+        EmitCodeSum(prog_code, n_bytes, ARG_IMMED_VAL | ARG_REGTR_VAL | CMD_PUSH, val, reg_id);
+        *text += symbs;
+    }
+    else if (sscanf(*text, "r%cx %n", &reg_id, &symbs) == 1)
+    {
+        reg_id -= 'a';
+        if (!CorrectRegId(reg_id))
+        {
+            fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed!\n", reg_id + 'a');
+            abort();
+        }
+        EmitCodeReg(prog_code, n_bytes, ARG_REGTR_VAL | CMD_PUSH, reg_id);
+        *text += symbs;
+    }
+    else if (sscanf(*text, "%d %n", &val, &symbs) == 1)
+    {
+        EmitCodeArg(prog_code, n_bytes, ARG_IMMED_VAL | CMD_PUSH, val);
+        *text += symbs;
+    }
+    else
+    {
+       fprintf(stderr, "Syntax Error! No command after \"push\" matches its argument type\n");
+       abort();
+    }
+
+    return 0; // todo
+}
+
+static int ProcessPopArguments (cmd_code_t * prog_code, int * n_bytes, char ** text)
+{
+    int  symbs  = 0;
+    char reg_id = 0;
+    int  val    = 0;
+
+    printf("val = %p\n", &val);
+    printf("after & \n");
+
+    if (sscanf(*text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
+        sscanf(*text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
+    {
+        reg_id -= 'a';
+        if (!CorrectRegId(reg_id))
+        {
+            fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed!\n", reg_id + 'a', reg_id + 'a');
+            abort();
+        }
+
+        EmitCodeSum(prog_code, n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | ARG_IMMED_VAL | CMD_POP, val, reg_id);
+        *text += symbs;
+    }
+    else if (sscanf(*text, "[ r%cx ] %n", &reg_id, &symbs) == 1)
+    {
+        reg_id -= 'a';
+        if (!CorrectRegId(reg_id))
+        {
+            fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed!\n", reg_id + 'a', reg_id + 'a');
+            abort();
+        }
+        EmitCodeReg(prog_code, n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | CMD_POP, reg_id);
+        *text += symbs;
+    }
+    else if (sscanf(*text, "[ %d ] %n", &val, &symbs) == 1)
+    {
+        EmitCodeArg(prog_code, n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | CMD_POP, val);
+        *text += symbs;
+    }
+    else if (sscanf(*text, "r%cx %n", &reg_id, &symbs) == 1)
+    {
+        reg_id -= 'a';
+        if (!CorrectRegId(reg_id))
+        {
+            fprintf(stderr, "Syntax Error! Register \"r%cx\" (%d) not allowed!\n", reg_id + 'a', reg_id + 'a');
+            abort();
+        }
+        EmitCodeReg(prog_code, n_bytes, ARG_REGTR_VAL | CMD_POP, reg_id);
+        *text += symbs;
+    }
 }
 
 int WriteCodeBin (const char * fout_name, char * prog_code, size_t n_tokens) {

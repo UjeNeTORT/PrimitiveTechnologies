@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../commands.h"
+#include "../enums.h"
 
 #define FPRINTF_LISTING_NOARG(stream, id, cmd, name, symbs)  \
     fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);         \
