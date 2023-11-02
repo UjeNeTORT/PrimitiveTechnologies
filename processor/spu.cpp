@@ -55,7 +55,7 @@ int main(int argc, char * argv[]) {
     if (run_res != REACH_END &&
         run_res != REACH_HLT)
     {
-        fprintf(stderr, "RunBin cant finish its work due to an unexpected error (%d)!\n", run_res);
+        fprintf(stderr, "RunBin: unexpected error (%d)!\n", run_res);
 
         return 1;
     }
@@ -121,7 +121,7 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
             default:
             {
-                fprintf(stderr, "SIGILL! Illegal instruction \"%d\" (%lu)\n", cmd, ip_init);
+                fprintf(stderr, "Illegal instruction \"%d\" (%lu)\n", cmd, ip_init);
 
                 return ILL_CDMCODE;
             }
@@ -155,7 +155,7 @@ Elem_t GetPushArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], El
     if (cmd & ARG_IMMED_VAL)
     {
         memcpy(&tmp_res, prog_code + ip, sizeof(Elem_t));
-        res += tmp_res * STK_PRECISION; // we multiply only here because in other cases values in ram and in regs are allready multiplied
+        res += tmp_res * STK_PRECISION;
 
         tmp_res = 0;
 
@@ -268,14 +268,14 @@ int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_siz
     if (CtorStack(&(spu->call_stk), call_stack_capacity) != CTOR_NO_ERR)
     {
         fprintf(stderr, "Call-Stack Constructor returned error\n");
-        abort();                                                    // aborting is justified
+        abort();
     }
 
     spu->RAM = (Elem_t *) calloc(ram_size, sizeof(Elem_t));
-    if (spu->RAM == NULL) // todo pointer validator
+    if (spu->RAM == NULL)
     {
         fprintf(stderr, "Unable to allocate memory for RAM\n");
-        abort();                        // todo return enum. What if we dont use RAM in asm code? program shouldnt fall
+        abort();
     }
 
     return 0;
@@ -326,7 +326,7 @@ static Elem_t CalcIdiv (Elem_t numerator, Elem_t denominator)
 {
     Elem_t mod = CalcMod(numerator, denominator);
 
-    return (Elem_t) ( (float) numerator - mod) / (float) denominator * STK_PRECISION;
+    return (Elem_t) ( (float) numerator - mod) / denominator * STK_PRECISION;
 }
 
 static Elem_t MultInts (Elem_t frst, Elem_t scnd)
@@ -335,5 +335,5 @@ static Elem_t MultInts (Elem_t frst, Elem_t scnd)
 }
  Elem_t DivideInts(Elem_t numerator, int denominator)
  {
-    return (Elem_t) ( (float) numerator / (float) denominator * STK_PRECISION);
+    return (Elem_t) ( (float) numerator / denominator * STK_PRECISION);
  }

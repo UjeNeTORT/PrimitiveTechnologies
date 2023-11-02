@@ -1,5 +1,8 @@
 /*
-DEF_CMD (name, num, text, spu_code, have_arg, code_have_arg)
+DEF_CMD (name, num, text,
+                        spu_code,
+                        have_arg,
+                        code_have_arg <- for asm)
 */
 DEF_CMD (HLT, 31, "hlt", {
                             PRINTF_INTERMED_INFO("# (%s - %3ld) Hlt encountered, goodbye!\n", "proc", ip_init);
@@ -101,7 +104,7 @@ DEF_CMD (POP, 2, "pop", {
                                 EmitCodeReg(prog_code, &n_bytes, ARG_REGTR_VAL | CMD_POP, reg_id);
                                 text += symbs;
                             }
-                                                }
+                            }
 )
 
 DEF_CMD (IN, 3, "in",   {
@@ -445,7 +448,6 @@ DEF_CMD (FRAME, 22, "frame", {
                                 }
 
                                 ip += CalcIpOffset(cmd);
-
                         },
                         0,
                         ;
