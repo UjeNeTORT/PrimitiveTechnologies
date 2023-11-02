@@ -197,7 +197,7 @@ int TranslateProgram (char * text, char * prog_code) {
 
             text += symbs;
 
-            printf("n_bytes = %d\n", n_bytes);
+
             if (0)
             {
                 ;
@@ -343,9 +343,6 @@ static int ProcessPopArguments (cmd_code_t * prog_code, int * n_bytes, char ** t
     int  symbs  = 0;
     char reg_id = 0;
     int  val    = 0;
-
-    printf("val = %p\n", &val);
-    printf("after & \n");
 
     if (sscanf(*text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
         sscanf(*text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
