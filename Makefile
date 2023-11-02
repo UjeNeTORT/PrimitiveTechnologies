@@ -4,7 +4,7 @@ options = -O2 -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloa
 -Wnon-virtual-dtor -Woverloaded-virtual -Wpointer-arith -Wsign-promo -Wstack-usage=8192 -Wstrict-aliasing -Wstrict-null-sentinel 			\
 -Wtype-limits -Wwrite-strings -Werror=vla -D_DEBUG -D_EJUDGE_CLIENT_SIDE -fsanitize=address
 
-asm_flags = --finname testcases/ex7.txt
+asm_flags = --finname testcases/ex5.txt
 spu_flags = --finname translated.bin
 
 DEFAULT = $(wildcard stacklib/*.cpp)

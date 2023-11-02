@@ -24,10 +24,10 @@ static int       SPUDtor        (SPU * spu);
 static Elem_t    GetPushArg     (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
 static Elem_t *  GetPopArgAddr  (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
 
-static int       CalcIpOffset   (cmd_code_t cmd);
 static int       CmdCodeIsValid (cmd_code_t cmd);
 
 static Elem_t    PopCmpTopStack (stack * stk_ptr);
+static int       CalcIpOffset   (cmd_code_t cmd);
 static Elem_t    CalcMod        (Elem_t numerator, Elem_t denominator);
 static Elem_t    CalcIdiv       (Elem_t numerator, Elem_t denominator);
 static Elem_t    DivideInts     (Elem_t numerator, Elem_t denominator);
@@ -239,7 +239,7 @@ Elem_t * GetPopArgAddr (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[
     return reg_ptr;
 }
 
-static int CalcIpOffset (cmd_code_t cmd)
+int CalcIpOffset (cmd_code_t cmd)
 {
     int offset = sizeof(cmd_code_t);
 

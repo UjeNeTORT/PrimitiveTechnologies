@@ -4,60 +4,7 @@
 #include <string.h>
 
 #include "../enums.h"
-
-#define FPRINTF_LISTING_NOARG(stream, id, cmd, name, symbs)  \
-    fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);         \
-    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;              \
-                                                             \
-    for (int i = 0; i < symbs; i++)                          \
-        fprintf(stream, " ");                                \
-                                                             \
-    fprintf(stream, "%s\n", name);                           \
-
-#define FPRINTF_LISTING_JMP(stream, id, cmd, target, name, symbs)  \
-    fprintf(stream, "(%lu) %d %d %n", id, cmd, target, &symbs);    \
-    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;                    \
-                                                                   \
-    for (int i = 0; i < symbs; i++)                                \
-        fprintf(stream, " ");                                      \
-                                                                   \
-    fprintf(stream, "%s %d\n", name, target);                      \
-
-#define FPRINTF_PUSH(stream, id, cmd, imm_arg, reg_id, name, symbs) \
-    fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);                \
-    if (cmd & ARG_IMMED_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "%d ", imm_arg);                            \
-    }                                                               \
-    if (cmd & ARG_REGTR_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "%d ", reg_id);                             \
-    }                                                               \
-    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;                     \
-    for (int i = 0; i < symbs; i++)                                 \
-        fprintf(stream, " ");                                       \
-                                                                    \
-    fprintf(stream, "%s ", name);                                   \
-    if (cmd & ARG_MEMRY_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "[");                                       \
-    }                                                               \
-    if (cmd & ARG_REGTR_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "r%cx", 'a' + reg_id);                      \
-        if (cmd & ARG_IMMED_VAL) {                                  \
-            fprintf(stream, " + ");                                 \
-        }                                                           \
-    }                                                               \
-    if (cmd & ARG_IMMED_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "%d", imm_arg);                             \
-    }                                                               \
-    if (cmd & ARG_MEMRY_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "]");                                       \
-    }                                                               \
-    fprintf(stream, "\n");
+#include "../processor/spu.h"
 
 #define FPRINTF_POP(stream, id, cmd, imm_arg, reg_id, name, symbs)  \
     fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);                \
@@ -100,6 +47,13 @@ const char * DISASM_FILENAME            = "disasmed.txt";
 
 static size_t ReadByteCode (const char * in_fname, cmd_code_t ** prog_code);
 static int    DisAssemble  (const cmd_code_t * prog_code, size_t n_bytes, const char * out_fname);
+
+int fprintf_listing_jmp     (FILE * stream, const cmd_code_t * prog_code, int ip, const char * name);
+int fprintf_listing_no_arg  (FILE * stream, const cmd_code_t * prog_code, int ip, const char * name);
+int fprintf_push            (FILE * stream, const cmd_code_t * prog_code, int ip, const char * name);
+int fprintf_pop             (FILE * stream, const cmd_code_t * prog_code, size_t ip, const char * name);
+
+int           CalcIpOffset (cmd_code_t cmd);
 
 int main()
 {
@@ -152,240 +106,205 @@ int DisAssemble (const cmd_code_t * prog_code, size_t n_bytes, const char * out_
     size_t ip  = 0;
     int symbs  = 0;
 
+    cmd_code_t cmd = 0;
+
     while (ip < n_bytes)
     {
-        switch (prog_code[ip] & OPCODE_MSK)
+        cmd = prog_code[ip];
+
+        switch (cmd & OPCODE_MSK)
         {
             case CMD_HLT:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "hlt", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "hlt");
+
+                ip += CalcIpOffset(cmd);
+
                 break;
             }
 
             case CMD_PUSH:
             {
-                if (prog_code[ip] & ARG_IMMED_VAL)
-                {
-                    val = *(int *)(prog_code + ip + 1);
-                    reg_id = *(char *)(prog_code + ip + 1 + 4);
-                }
-                else
-                    reg_id = *(char *)(prog_code + ip + 1);
 
-                FPRINTF_PUSH(fout, ip, prog_code[ip], val, reg_id, "push", symbs);
+                fprintf_push(fout, prog_code, ip, "push");
 
-                if (prog_code[ip] & ARG_IMMED_VAL)
-                    ip += sizeof(int);
-                if (prog_code[ip] & ARG_REGTR_VAL)
-                    ip += sizeof(char);
-
-                ip += sizeof(char);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_POP:
             {
-                if (prog_code[ip] & ARG_IMMED_VAL)
-                {
-                    memcpy(&val, prog_code + ip + 1, sizeof(int));
-                    memcpy(&reg_id, prog_code + ip + 1 + 4, sizeof(char));
-                }
-                else
-                    // reg_id = *(char *)(prog_code + ip + 1);
-                    memcpy(&reg_id, prog_code + ip + 1, sizeof(char));
+                fprintf_pop(fout, prog_code, ip, "pop");
 
-                FPRINTF_POP(fout, ip, prog_code[ip], val, reg_id, "pop", symbs);
-
-                if (prog_code[ip] & ARG_IMMED_VAL)
-                    ip += sizeof(int);
-                if (prog_code[ip] & ARG_REGTR_VAL)
-                    ip += sizeof(char);
-
-                ip += sizeof(char);
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_IN:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "in", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "in");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_OUT:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "out", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "out");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_FRAME:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "frame", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "frame");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_ADD:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "add", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "add");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_SUB:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "sub", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "sub");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_MUL:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "mul", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "mul");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_DIV:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "div", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "div");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_SQRT:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "sqrt", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "sqrt");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_SQR:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "sqr", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "sqr");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_MOD:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "mod", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "mod");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_IDIV:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "idiv", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "idiv");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_CALL:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "call", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "call");
+
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_RET:
             {
-                FPRINTF_LISTING_NOARG(fout, ip, prog_code[ip], "ret", symbs);
-                ip++;
+                fprintf_listing_no_arg(fout, prog_code, ip, "ret");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_JMP:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "jmp", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "jmp");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
             // IMM
             case CMD_JA:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "ja", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "ja");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
             case CMD_JAE:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "jae", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "jae");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_JB:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "jb", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "jb");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_JBE:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "jbe", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "jbe");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_JE:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "je", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "je");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             case CMD_JNE:
             {
-                val = *(int *)(prog_code + ip + 1);
-                FPRINTF_LISTING_JMP(fout, ip, prog_code[ip], val, "jne", symbs);
-                ip += sizeof(char);
-                ip += sizeof(int);
+                fprintf_listing_jmp(fout, prog_code, ip, "jne");
+                ip += CalcIpOffset(cmd);
 
                 break;
             }
 
             default:
             {
-                fprintf(stderr, "# Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", prog_code[ip], ip);
+                fprintf(stderr, "# Syntax Error! No command \"%d\" (%lu) found! Bye bye looser!\n", cmd, ip);
 
                 return 1;
             }
@@ -398,40 +317,163 @@ int DisAssemble (const cmd_code_t * prog_code, size_t n_bytes, const char * out_
     return 0;
 }
 
-// int DisasmPop(FILE * stream, cmd_code_t * prog_code, size_t ip, const char * name, int symbs)
-// {
-//     fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);
-//     if (cmd & ARG_IMMED_VAL)
-//     {
-//         fprintf(stream, "%d ", imm_arg);
-//     }
-//     if (cmd & ARG_REGTR_VAL)
-//     {
-//         fprintf(stream, "%d ", reg_id);
-//     }
-//     symbs = LISTING_CODE_TEXT_DISTANCE - symbs;
-//     for (int i = 0; i < symbs; i++)
-//         fprintf(stream, " ");
+int CalcIpOffset (cmd_code_t cmd)
+{
+    int offset = sizeof(cmd_code_t);
 
-//     fprintf(stream, "%s ", name);
-//     if (cmd & ARG_MEMRY_VAL)
-//     {
-//         fprintf(stream, "[");
-//     }
-//     if (cmd & ARG_REGTR_VAL)
-//     {
-//         fprintf(stream, "r%cx", 'a' + reg_id);
-//         if (cmd & ARG_IMMED_VAL) {
-//             fprintf(stream, " + ");
-//         }
-//     }
-//     if (cmd & ARG_IMMED_VAL)
-//     {
-//         fprintf(stream, "%d", imm_arg);
-//     }
-//     if (cmd & ARG_MEMRY_VAL)
-//     {
-//         fprintf(stream, "]");
-//     }
-//     fprintf(stream, "\n");
-// }
+    if (cmd & ARG_IMMED_VAL)
+        offset += sizeof(Elem_t);
+
+    if (cmd & ARG_REGTR_VAL)
+        offset += sizeof(cmd_code_t);
+
+    return offset;
+}
+
+int fprintf_listing_jmp (FILE * stream, const cmd_code_t * prog_code, int ip, const char * name)
+{
+    int symbs = 0;
+    cmd_code_t cmd = *(cmd_code_t *)(prog_code + ip);
+    int target = *(int *)(prog_code + ip + 1);
+
+    fprintf(stream, "(%lu) %d %d %n", ip, cmd, target, &symbs);
+    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;
+
+    for (int i = 0; i < symbs; i++)
+        fprintf(stream, " ");
+
+    fprintf(stream, "%s %d\n", name, target);
+
+    return 0;
+}
+
+int fprintf_listing_no_arg (FILE * stream, const cmd_code_t * prog_code, int ip, const char * name)
+{
+    int symbs = 0;
+
+    cmd_code_t cmd = *(cmd_code_t *)(prog_code + ip);
+
+    fprintf(stream, "(%lu) %d %n", ip, cmd, &symbs);
+    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;
+
+    for (int i = 0; i < symbs; i++)
+        fprintf(stream, " ");
+
+    fprintf(stream, "%s\n", name);
+
+    return 0;
+}
+
+int fprintf_push (FILE * stream, const cmd_code_t * prog_code, int ip, const char * name)
+{
+    cmd_code_t cmd = *(cmd_code_t *)(prog_code + ip);
+
+    int symbs = 0;
+    int val   = 0;
+    char reg_id = 0;
+
+    if (cmd & ARG_IMMED_VAL)
+    {
+        val = *(int *)(prog_code + ip + 1);
+        reg_id = *(char *)(prog_code + ip + 1 + 4);
+    }
+    else
+        reg_id = *(char *)(prog_code + ip + 1);
+
+    fprintf(stream, "(%lu) %d %n", ip, cmd, &symbs);
+
+    if (cmd & ARG_IMMED_VAL)
+    {
+        fprintf(stream, "%d ", val);
+    }
+    if (cmd & ARG_REGTR_VAL)
+    {
+        fprintf(stream, "%d ", reg_id);
+    }
+
+    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;
+    for (int i = 0; i < symbs; i++)
+        fprintf(stream, " ");
+
+    fprintf(stream, "%s ", name);
+
+    if (cmd & ARG_MEMRY_VAL)
+    {
+        fprintf(stream, "[");
+    }
+    if (cmd & ARG_REGTR_VAL)
+    {
+        fprintf(stream, "r%cx", 'a' + reg_id);
+        if (cmd & ARG_IMMED_VAL) {
+            fprintf(stream, " + ");
+        }
+    }
+    if (cmd & ARG_IMMED_VAL)
+    {
+        fprintf(stream, "%d", val);
+    }
+    if (cmd & ARG_MEMRY_VAL)
+    {
+        fprintf(stream, "]");
+    }
+    fprintf(stream, "\n");
+
+    return 0;
+}
+
+int fprintf_pop (FILE * stream, const cmd_code_t * prog_code, size_t ip, const char * name)
+{
+    int val = 0;
+    char reg_id = 0;
+    int symbs = 0;
+
+    cmd_code_t cmd = *(cmd_code_t *)(prog_code + ip);
+
+    if (cmd & ARG_IMMED_VAL)
+    {
+        val = *(int *)(prog_code + ip + 1);
+        reg_id =  *(char *)(prog_code + ip + 1 + 4);
+    }
+    else
+        reg_id = *(char *)(prog_code + ip + 1);
+
+
+    fprintf(stream, "(%lu) %d %n", ip, cmd, &symbs);
+    if (cmd & ARG_IMMED_VAL)
+    {
+        fprintf(stream, "%d ", val);
+    }
+    if (cmd & ARG_REGTR_VAL)
+    {
+        fprintf(stream, "%d ", reg_id);
+    }
+
+    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;
+
+    for (int i = 0; i < symbs; i++)
+        fprintf(stream, " ");
+
+    fprintf(stream, "%s ", name);
+    if (cmd & ARG_MEMRY_VAL)
+    {
+        fprintf(stream, "[");
+    }
+    if (cmd & ARG_REGTR_VAL)
+    {
+        fprintf(stream, "r%cx", 'a' + reg_id);
+        if (cmd & ARG_IMMED_VAL) {
+            fprintf(stream, " + ");
+        }
+    }
+    if (cmd & ARG_IMMED_VAL)
+    {
+        fprintf(stream, "%d", val);
+    }
+    if (cmd & ARG_MEMRY_VAL)
+    {
+        fprintf(stream, "]");
+    }
+    fprintf(stream, "\n");
+
+    return 0;
+}
