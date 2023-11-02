@@ -104,8 +104,8 @@ static int    DisAssemble  (const cmd_code_t * prog_code, size_t n_bytes, const 
 int main()
 {
     fprintf(stdout, "\n"
-                    "# Disassembler by NeTort, 2023\n"
-                    "# Working...\n\n");
+                    "# Disassembler by NeTort\n"
+                    "# (c) TIKHONOV YAROSLAV 2023\n\n");
 
     cmd_code_t * prog_code = NULL;
     size_t n_bytes = ReadByteCode(BIN_FILENAME, &prog_code);
@@ -187,8 +187,6 @@ int DisAssemble (const cmd_code_t * prog_code, size_t n_bytes, const char * out_
 
             case CMD_POP:
             {
-
-
                 if (prog_code[ip] & ARG_IMMED_VAL)
                 {
                     memcpy(&val, prog_code + ip + 1, sizeof(int));

@@ -36,11 +36,11 @@ static Elem_t    MultInts       (Elem_t frst, Elem_t scnd);
 int main(int argc, char * argv[]) {
 
     fprintf(stdout, "\n"
-                    "# Processor by NeTort, 2023\n"
-                    "# Does stuff... What else can i say?\n\n");
+                    "# Processor by NeTort\n"
+                    "# (c) TIKHONOV YAROSLAV 2023\n\n");
 
     SPU my_spu = {};
-    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_CALL_STK_CAPA, SPU_GRAM_WIDTH * SPU_GRAM_HIGHT + GRAM_MAPPING);
+    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_CALL_STK_CAPA, SPU_VRAM_WIDTH * SPU_VRAM_HIGHT + VRAM_MAPPING);
 
     cmd_code_t * prog_code = NULL;
     size_t n_bytes = ReadByteCode(BIN_FILENAME, &prog_code);
@@ -108,12 +108,12 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
         switch (cmd & OPCODE_MSK)
         {
-            #define DEF_CMD(name, num, text, spu_code, ...)     \
-                case CMD_##name:                                \
-                    {                                           \
-                        spu_code;                               \
-                        break;                                  \
-                    }                                           \
+            #define DEF_CMD(name, num, text, have_arg, spu_code, ...)  \
+                case CMD_##name:                                       \
+                    {                                                  \
+                        spu_code;                                      \
+                        break;                                         \
+                    }                                                  \
 
             #include "../commands.h"
 

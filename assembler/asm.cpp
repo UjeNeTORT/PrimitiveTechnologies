@@ -21,7 +21,7 @@ static int  LabelDtor     (Label labels[], int n_lbls);
 /**
  * @brief return position of label with name token in labels array
 */
-static int  LabelFind     (Label labels[], int n_lbls, char * token);
+static int  LabelFind     (Label labels[], int n_lbls, size_t hash);
 
 /**
  * @brief put cmd-code with argument val (int) to prog-code array
@@ -64,14 +64,15 @@ static int ProcessPopArguments (cmd_code_t * prog_code, int * n_bytes, char ** t
 
 static int ProcessJmpArguments (char ** text, size_t n_run, Label labels[], int n_lbls);
 
+static size_t HashMod(const char * word, size_t size);
+
 const int MAX_REGS = 26; //* duplicate, register is to be checked in processor
 
-int main(int argc, char * argv[]) {
-
+int main(int argc, char * argv[])
+{
     fprintf(stdout, "\n"
-                    "# Assembler by NeTort, 2023\n"
-                    "# Working...\n"
-                    "# If something is wrong it will call you looser, dont cry\n\n");
+                    "# Assembler by NeTort\n"
+                    "(c) TIKHONOV YAROSLAV 2023\n\n");
 
 
     for (int argn = 0; argn < argc; argn++)
@@ -89,8 +90,8 @@ int main(int argc, char * argv[]) {
 /**
  * @brief change commands from fin_name to their codes (from usr_cmd) fout_name. cmd_arr of usr_cmd structs is formed using ParseCmdNames func
 */
-AsmResType Assemble (const char * fin_name, const char * fbinout_name) {
-
+AsmResType Assemble (const char * fin_name, const char * fbinout_name)
+{
     assert(fin_name);
     assert(fbinout_name);
 
@@ -103,18 +104,21 @@ AsmResType Assemble (const char * fin_name, const char * fbinout_name) {
 
     //==================== PREPROCESS EACH LINE OF THE TEXT ==========================
 
-    DecommentProgram(in_text, n_lines);
+    if (DecommentProgram(in_text, n_lines) != DECOM_NO_ERR)
+    {
+        fprintf(stderr, "DecommentProgram: error\n");
+        abort();
+    }
 
     //============= PUT TEXT IN ARRAY OF WORDS SEPEARATED BY BLANKS ==================
 
-    char * text_tokenized = (char *) calloc (n_lines * CMDS_PER_LINE * MAX_CMD, sizeof(char));
+    char * text_tokenized = (char *) calloc(n_lines * CMDS_PER_LINE * MAX_CMD, sizeof(char));
 
     int n_tokens = TokenizeText(in_text, n_lines, text_tokenized);
 
     //========================== CREATE BYTECODE ARRAY ===============================
 
-    char * prog_code = (char *) calloc(n_tokens, sizeof(int));
-    printf("prog_code[%p]\n", prog_code);
+    cmd_code_t * prog_code = (cmd_code_t *) calloc(n_tokens, sizeof(int));
 
     //====================== TRANSLATE TEXT INTO BYTE-CODES ==========================
 
@@ -122,19 +126,22 @@ AsmResType Assemble (const char * fin_name, const char * fbinout_name) {
 
     //========================== OUTPUT TO BINARY FILE ===============================
 
-    WriteCodeBin(fbinout_name, prog_code, n_bytes);
+    if (WriteCodeBin(fbinout_name, prog_code, n_bytes) != WRITE_NO_ERR)
+    {
+        abort();
+    }
 
     //====================== FREE ALL THE ALLOCATED MEMORY ===========================
 
     free(prog_code);
     free(in_buf);
     free(in_text);
-    free(text_tokenized); // strange thing that we free memory not from the part of code where it was allocated
+    free(text_tokenized);
 
     return ASM_OUT_NO_ERR;
 }
 
-int DecommentProgram (char ** text, size_t n_lines)
+DecommentRes DecommentProgram (char ** text, size_t n_lines)
 {
     assert(text);
 
@@ -148,12 +155,12 @@ int DecommentProgram (char ** text, size_t n_lines)
             *comm_pos = '\0';
     }
 
-    return 0;
+    return DECOM_NO_ERR;
 }
 
 //* works only with preprocessed program
 //* any error inside translator leads to abort of assembly program with error message (no return codes due to no need)
-int TranslateProgram (char * text, char * prog_code) {
+int TranslateProgram (char * text, cmd_code_t * prog_code) {
 
     assert(text);
     assert(*text);
@@ -169,9 +176,9 @@ int TranslateProgram (char * text, char * prog_code) {
     int symbs = 0;
 
     char * text_init = text;
-    char * prog_code_init = prog_code;
+    cmd_code_t * prog_code_init = prog_code;
 
-    #define DEF_CMD(name, num, text, spu_code, have_arg, code_have_arg) \
+    #define DEF_CMD(name, num, text, have_arg, spu_code, code_have_arg) \
         else if (strcmp(token, text) == 0)                              \
         {                                                               \
             if (have_arg)                                               \
@@ -196,7 +203,6 @@ int TranslateProgram (char * text, char * prog_code) {
                 break;
 
             text += symbs;
-
 
             if (0)
             {
@@ -248,13 +254,13 @@ static int ProcessJmpArguments (char ** text, size_t n_run, Label labels[], int 
         abort();
     }
 
-    *text += symbs; // "rax" len of string (assume all registers consist of )
+    *text += symbs;
 
     int cmd_ptr = -1;
 
     if (n_run == RUN_LBL_UPD)
     {
-        cmd_ptr = LabelFind(labels, n_lbls, lbl_name);
+        cmd_ptr = LabelFind(labels, n_lbls, HashMod(lbl_name, strlen(lbl_name)));
         if (cmd_ptr == -1)
         {
             fprintf(stderr, "Syntax Error! No label named \"%s\" found on second run.\n", lbl_name);
@@ -264,6 +270,7 @@ static int ProcessJmpArguments (char ** text, size_t n_run, Label labels[], int 
 
     return cmd_ptr;
 }
+
 static int ProcessPushArguments (cmd_code_t * prog_code, int * n_bytes, char ** text)
 {
     int  symbs  = 0;
@@ -321,6 +328,7 @@ static int ProcessPushArguments (cmd_code_t * prog_code, int * n_bytes, char ** 
             fprintf(stderr, "Syntax Error! Register \"r%cx\" not allowed!\n", reg_id + 'a');
             abort();
         }
+
         EmitCodeReg(prog_code, n_bytes, ARG_REGTR_VAL | CMD_PUSH, reg_id);
         *text += symbs;
     }
@@ -335,7 +343,7 @@ static int ProcessPushArguments (cmd_code_t * prog_code, int * n_bytes, char ** 
        abort();
     }
 
-    return 0; // todo
+    return 0;
 }
 
 static int ProcessPopArguments (cmd_code_t * prog_code, int * n_bytes, char ** text)
@@ -384,28 +392,43 @@ static int ProcessPopArguments (cmd_code_t * prog_code, int * n_bytes, char ** t
         EmitCodeReg(prog_code, n_bytes, ARG_REGTR_VAL | CMD_POP, reg_id);
         *text += symbs;
     }
+
+    return 0;
 }
 
-int WriteCodeBin (const char * fout_name, char * prog_code, size_t n_tokens) {
-
+WriteBinRes WriteCodeBin (const char * fout_name, cmd_code_t * prog_code, size_t n_bytes)
+{
     assert(fout_name);
     assert(prog_code);
 
     FILE * fout = fopen(fout_name, "wb");
     assert(fout);
 
-    // put size in the beginning (this can be the beginning of signature-maker function}
-    fwrite(&n_tokens, sizeof(size_t), 1, fout); // TODO check return val
+    // put size in the beginning
 
-    fwrite(prog_code, sizeof(*prog_code), n_tokens, fout); // TODO check return val
+    size_t write_res = fwrite(&n_bytes, sizeof(size_t), 1, fout);
+    if (write_res == 0)
+    {
+        fprintf(stderr, "WriteCodeBin: fwrite error\n");
+
+        return WRITE_ERR;
+    }
+
+    write_res = fwrite(prog_code, sizeof(cmd_code_t), n_bytes, fout);
+    if (write_res == 0)
+    {
+        fprintf(stderr, "WriteCodeBin: fwrite error\n");
+
+        return WRITE_ERR;
+    }
 
     fclose(fout);
 
-    return 0; // TODO return enum
+    return WRITE_NO_ERR;
 }
 
-int TokenizeText (char ** text, size_t n_lines, char * text_tokenized) {
-
+int TokenizeText (char ** text, size_t n_lines, char * text_tokenized)
+{
     assert(text);
 
     char * tt_init = text_tokenized;
@@ -431,67 +454,68 @@ int TokenizeText (char ** text, size_t n_lines, char * text_tokenized) {
     text_tokenized = tt_init;
 
     // calculate number of tokens
-    int scan_res = 0;
-    while ((scan_res = sscanf(text_tokenized, "%s %n", &token, &symbs)) != 0 && scan_res != EOF) {
-
+    int scan_res = sscanf(text_tokenized, "%s %n", &token, &symbs);
+    while (scan_res != 0 && scan_res != EOF)
+    {
         text_tokenized += symbs;
         n_tokens++;
-    }
 
-    // free(text_tokenized); // todo free part we didnt use
+        scan_res = sscanf(text_tokenized, "%s %n", &token, &symbs);
+    }
 
     return n_tokens;
 }
 
-static int EmitCodeArg (char * prog_code, int * n_bytes, char code, int val)
+static int EmitCodeArg (cmd_code_t * prog_code, int * n_bytes, cmd_code_t code, int val)
 {
     assert (prog_code);
 
-    memcpy((prog_code + *n_bytes), &code, sizeof(char)); // emit cmd code
-    *n_bytes += sizeof(char);
+    memcpy((prog_code + *n_bytes), &code, sizeof(cmd_code_t)); // emit cmd code
+    *n_bytes += sizeof(cmd_code_t);
 
-    memcpy((prog_code + *n_bytes), &val, sizeof(int));   // emit immed val
+    memcpy((prog_code + *n_bytes), &val, sizeof(int));         // emit immed val
     *n_bytes += sizeof(int);
 
     return 0;
 }
 
-static int EmitCodeReg (char * prog_code, int * n_bytes, char code, char reg_id) {
-
+static int EmitCodeReg (cmd_code_t * prog_code, int * n_bytes, cmd_code_t code, char reg_id)
+{
     assert(prog_code);
 
-    memcpy((prog_code + *n_bytes), &code, sizeof(char)); // emit cmd code
-    *n_bytes += sizeof(char);
+    memcpy((prog_code + *n_bytes), &code, sizeof(cmd_code_t)); // emit cmd code
+    *n_bytes += sizeof(cmd_code_t);
 
-    memcpy((prog_code + *n_bytes), &reg_id, sizeof(char)); // emit reg_id
+    memcpy((prog_code + *n_bytes), &reg_id, sizeof(char));     // emit reg_id
     *n_bytes += sizeof(char);
 
     return 0;
 }
 
 // Write
-static int EmitCodeSum (char * prog_code, int * n_bytes, char code, int val, char reg_id)
+static int EmitCodeSum (cmd_code_t * prog_code, int * n_bytes, cmd_code_t code, int val, char reg_id)
 {
     assert(prog_code);
 
-    memcpy((prog_code + *n_bytes), &code, sizeof(char));   // emit cmd code
-    *n_bytes += sizeof(char);
+    memcpy((prog_code + *n_bytes), &code, sizeof(cmd_code_t));   // emit cmd code
+    *n_bytes += sizeof(cmd_code_t);
 
-    memcpy((prog_code + *n_bytes), &val, sizeof(int));     // emit immed val
+    memcpy((prog_code + *n_bytes), &val, sizeof(int));           // emit immed val
     *n_bytes += sizeof(int);
 
-    memcpy((prog_code + *n_bytes), &reg_id, sizeof(char)); // emit reg_id
+    memcpy((prog_code + *n_bytes), &reg_id, sizeof(char));       // emit reg_id
     *n_bytes += sizeof(char);
 
     return 0;
 }
 
-static int EmitCodeNoArg (char * prog_code, int * n_bytes, char code) {
-
+// WriteOpNoArg
+static int EmitCodeNoArg (cmd_code_t * prog_code, int * n_bytes, char code)
+{
     assert (prog_code);
 
-    memcpy((prog_code + *n_bytes), &code, sizeof(char)); // emit cmd code
-    *n_bytes += sizeof(char);
+    memcpy((prog_code + *n_bytes), &code, sizeof(cmd_code_t)); // emit cmd code
+    *n_bytes += sizeof(cmd_code_t);
 
     return 0;
 }
@@ -509,9 +533,6 @@ static int CorrectRegId (int reg_id)
 */
 int IsLabel(const char * token)
 {
-    // todo both :label and label: types of labels
-    // todo make it real soviet function
-
     assert (token);
 
     const char * col_pos = 0;
@@ -548,19 +569,21 @@ int LabelCtor (Label labels[], int n_lbls, int byte_pos, const char * name)
     char * col_pos = strchr(name_no_col, ':');
     *col_pos = 0;
 
-    if (LabelFind(labels, n_lbls, name_no_col) != -1)
+    size_t hash = HashMod(name_no_col, strlen(name_no_col));
+
+    if (LabelFind(labels, n_lbls, hash) != -1)
     {
         fprintf(stderr, "Syntax Error! Two labels with same name found!\n");
         abort();
     }
 
-    labels[n_lbls] = {byte_pos, name_no_col};
+    labels[n_lbls] = {byte_pos, hash, name_no_col};
 
-    return 0; // todo return enum
+    return 0;
 }
 
-int LabelDtor (Label labels[], int n_lbls) {
-
+int LabelDtor (Label labels[], int n_lbls)
+{
     for (int i = 0; i < n_lbls; i++)
     {
         free(labels[i].name);
@@ -569,11 +592,11 @@ int LabelDtor (Label labels[], int n_lbls) {
     return 0;
 }
 
-int LabelFind (Label labels[], int n_lbls, char * token)
+int LabelFind (Label labels[], int n_lbls, size_t hash)
 {
     for (int i = 0; i < n_lbls; i++)
     {
-        if (strcmp(labels[i].name, token) == 0)
+        if (labels[i].hash == hash)
         {
             return labels[i].cmd_ptr;
         }
@@ -584,4 +607,19 @@ int LabelFind (Label labels[], int n_lbls, char * token)
     }
 
     return -1;
+}
+
+size_t HashMod(const char * word, size_t size)
+{
+    assert (word);
+
+    size_t hash = 0;
+
+    for (size_t i = 0; i < size; i++)
+    {
+        hash += (size_t) word[i];
+        hash %= 1000000007;
+    }
+
+    return hash;
 }
