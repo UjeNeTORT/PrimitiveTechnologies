@@ -5,6 +5,7 @@ options = -O2 -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloa
 -Wtype-limits -Wwrite-strings -Werror=vla -D_DEBUG -D_EJUDGE_CLIENT_SIDE -fsanitize=address
 
 asm_flags = --finname testcases/ex7.txt
+spu_flags = --finname translated.bin
 
 DEFAULT = $(wildcard stacklib/*.cpp)
 ASM = $(DEFAULT) assembler/asm.cpp $(wildcard text_processing_lib/*.cpp)
@@ -29,4 +30,4 @@ run_disasm:
 	disassembler/disasm.exe
 
 run:
-	processor/start.exe
+	processor/start.exe $(spu_flags)

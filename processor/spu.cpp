@@ -39,11 +39,22 @@ int main(int argc, char * argv[]) {
                     "# Processor by NeTort\n"
                     "# (c) TIKHONOV YAROSLAV 2023\n\n");
 
+    char * bin_fname = NULL;
+
+    for (int argn = 0; argn < argc; argn++)
+    {
+        if (strcmp(argv[argn], "--finname") == 0)
+        {
+            bin_fname = argv[argn + 1];
+            argn++;
+        }
+    }
+
     SPU my_spu = {};
     SPUCtor(&my_spu, SPU_STK_CAPA, SPU_CALL_STK_CAPA, SPU_VRAM_WIDTH * SPU_VRAM_HIGHT + VRAM_MAPPING);
 
     cmd_code_t * prog_code = NULL;
-    size_t n_bytes = ReadByteCode(BIN_FILENAME, &prog_code);
+    size_t n_bytes = ReadByteCode(bin_fname, &prog_code);
 
     fprintf(stdout, "Running...\n");
 
