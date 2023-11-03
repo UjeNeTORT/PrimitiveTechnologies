@@ -7,7 +7,7 @@
 
 #include "my_hash.h"
 
-#define DEBUG_MODE
+// #define DEBUG_MODE
 
 #define STACK_CANARY_PROTECT
 #define DATA_CANARY_PROTECT
@@ -43,10 +43,10 @@ typedef size_t Canary_t;
     #define ON_DEBUG(...) __VA_ARGS__;
 
 #else
-    #define STACK_DUMP(fname, stk, err_vector) ;
-    #define ADD_ERR_MSG(prev, msg)             ;
-    #define ASSERT_STACK(stk)                  ;
-    #define DEBUG_INFO(stk)                    {NULL, NULL, -1}
+    #define STACK_DUMP(fname, stk, err_vector, debg_inf) ;
+    #define ADD_ERR_MSG(prev, msg)                       ;
+    #define ASSERT_STACK(stk, debg_inf)                  ;
+    #define DEBUG_INFO(stk)                              {NULL, NULL, -1}
     #define ON_DEBUG(...)
 #endif // defined(DEBUG_MODE)
 

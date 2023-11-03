@@ -5,12 +5,12 @@
 #include <unistd.h>
 #include <math.h>
 
-#include "../commands.h"
+#include "../enums.h"
 #include "spu.h"
 #include "../stacklib/stack.h"
 #include "../text_processing_lib/text_buf.h"
 
-const int SHOW_INTERMED_INFO = 0;
+#define SHOW_INTERMED_INFO 0
 #define PRINTF_INTERMED_INFO(format, ...)     \
     if (SHOW_INTERMED_INFO)                   \
         fprintf(stderr, format, __VA_ARGS__); \
@@ -23,11 +23,12 @@ static int       SPUDtor        (SPU * spu);
 
 static Elem_t    GetPushArg     (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
 static Elem_t *  GetPopArgAddr  (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
+static int       ShowFrame      (SPU * spu);
 
-static int       CalcIpOffset   (cmd_code_t cmd);
 static int       CmdCodeIsValid (cmd_code_t cmd);
 
 static Elem_t    PopCmpTopStack (stack * stk_ptr);
+static int       CalcIpOffset   (cmd_code_t cmd);
 static Elem_t    CalcMod        (Elem_t numerator, Elem_t denominator);
 static Elem_t    CalcIdiv       (Elem_t numerator, Elem_t denominator);
 static Elem_t    DivideInts     (Elem_t numerator, Elem_t denominator);
@@ -36,14 +37,25 @@ static Elem_t    MultInts       (Elem_t frst, Elem_t scnd);
 int main(int argc, char * argv[]) {
 
     fprintf(stdout, "\n"
-                    "# Processor by NeTort, 2023\n"
-                    "# Does stuff... What else can i say?\n\n");
+                    "# Processor by NeTort\n"
+                    "# (c) TIKHONOV YAROSLAV 2023\n\n");
+
+    char * bin_fname = NULL;
+
+    for (int argn = 0; argn < argc; argn++)
+    {
+        if (strcmp(argv[argn], "--finname") == 0)
+        {
+            bin_fname = argv[argn + 1];
+            argn++;
+        }
+    }
 
     SPU my_spu = {};
-    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_CALL_STK_CAPA, SPU_GRAM_WIDTH * SPU_GRAM_HIGHT + GRAM_MAPPING);
+    SPUCtor(&my_spu, SPU_STK_CAPA, SPU_CALL_STK_CAPA, SPU_VRAM_WIDTH * SPU_VRAM_HIGHT + VRAM_MAPPING);
 
     cmd_code_t * prog_code = NULL;
-    size_t n_bytes = ReadByteCode(BIN_FILENAME, &prog_code);
+    size_t n_bytes = ReadByteCode(bin_fname, &prog_code);
 
     fprintf(stdout, "Running...\n");
 
@@ -55,7 +67,7 @@ int main(int argc, char * argv[]) {
     if (run_res != REACH_END &&
         run_res != REACH_HLT)
     {
-        fprintf(stderr, "RunBin cant finish its work due to an unexpected error (%d)!\n", run_res);
+        fprintf(stderr, "RunBin: unexpected error (%d)!\n", run_res);
 
         return 1;
     }
@@ -108,369 +120,20 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
 
         switch (cmd & OPCODE_MSK)
         {
-            case CMD_HLT:
-            {
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Hlt encountered, goodbye!\n", "proc", ip);
-
-                return REACH_HLT;
-            }
-
-            case CMD_FRAME:
-            {
-                for (int i = 0; i < SPU_GRAM_HIGHT; i++, printf("\n"))
-                {
-                    for (int j = 0; j < SPU_GRAM_WIDTH; j++)
-                    {
-                        printf("%c%c", spu->RAM[GRAM_MAPPING + i * SPU_GRAM_HIGHT + j] / STK_PRECISION,
-                                       spu->RAM[GRAM_MAPPING + i * SPU_GRAM_HIGHT + j] / STK_PRECISION);
-                    }
-                }
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_PUSH:
-            {
-                Elem_t arg = GetPushArg(prog_code, ip, spu->gp_regs, spu->RAM);
-
-                PushStack(&spu->stk, arg);
-
-                ip += CalcIpOffset(cmd);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Push GetArg -> %d\n", "proc", ip_init, arg);
-
-                break;
-            }
-
-            case CMD_POP:
-            {
-                if (cmd & ARG_TYPE_MSK)
-                {
-                    Elem_t * arg_ptr = GetPopArgAddr(prog_code, ip, spu->gp_regs, spu->RAM);
-
-                    if (arg_ptr == NULL)
-                    {
-                        fprintf(stderr, "Processor Error! SetArg couldnt return stuff\n");
-                        abort();
-                    }
-
-                    pop_err = POP_NO_ERR;
-
-                    *arg_ptr = PopStack(&spu->stk, &pop_err);
-
-                    ip += CalcIpOffset(cmd);
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Pop number to %p\n", "proc", ip_init, arg_ptr);
-                }
-                else
-                {
-                    pop_err = POP_NO_ERR;
-                    PopStack(&spu->stk, &pop_err);
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Pop number\n", "proc", ip_init);
-
-                    ip += CalcIpOffset(cmd);
-                }
-
-                break;
-            }
-
-            case CMD_IN:
-            {
-                fprintf(stdout, "\n>> ");
-
-                fscanf(stdin, "%d", &val);
-
-                val *= STK_PRECISION;
-
-                PushStack(&spu->stk, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_OUT:
-            {
-                pop_err = POP_NO_ERR;
-
-                val = PopStack(&spu->stk, &pop_err);
-
-                fprintf(stdout, "\n<< %.2f\n", (float) val / STK_PRECISION);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_ADD:
-            {
-                // PUSH(POP() + POP())
-                pop_err = POP_NO_ERR;
-                val = PopStack(&spu->stk, &pop_err) + PopStack(&spu->stk, &pop_err);
-                PushStack(&spu->stk, val);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Add: %d\n", "proc", ip_init, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_SUB:
-            {
-                pop_err = POP_NO_ERR;
-                val -= PopStack(&spu->stk, &pop_err);
-                val += PopStack(&spu->stk, &pop_err);
-                PushStack(&spu->stk, val);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Sub: %d\n", "proc", ip_init, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_MUL:
-            {
-                pop_err = POP_NO_ERR;
-                val = MultInts(PopStack(&spu->stk, &pop_err), PopStack(&spu->stk, &pop_err));
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Mul: %d\n", "proc", ip_init, val);
-
-                PushStack(&spu->stk, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_DIV:
-            {
-                pop_err = POP_NO_ERR;
-
-                Elem_t denominator = PopStack(&spu->stk, &pop_err);
-                Elem_t numerator   = PopStack(&spu->stk, &pop_err);
-
-                val = 0;
-                val = DivideInts(numerator, denominator);
-
-                PushStack(&spu->stk, val);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Div: %d\n", "proc", ip_init, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_SQRT:
-            {
-                pop_err = POP_NO_ERR;
-                val = PopStack(&spu->stk, &pop_err);
-
-                val = (int) sqrt(val * STK_PRECISION);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Sqrt: %d\n", "proc", ip_init, val);
-
-                PushStack(&spu->stk, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_SQR:
-            {
-                pop_err = POP_NO_ERR;
-                val = PopStack(&spu->stk, &pop_err);
-
-                val = val * val / STK_PRECISION;
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Sqr: %d\n", "proc", ip_init, val);
-
-                PushStack(&spu->stk, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_MOD:
-            {
-                pop_err = POP_NO_ERR;
-                Elem_t denominator = PopStack(&spu->stk, &pop_err);
-                Elem_t numerator   = PopStack(&spu->stk, &pop_err);
-
-                val = CalcMod(numerator, denominator);
-
-                PushStack(&spu->stk, val);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Mod: %d\n", "proc", ip_init, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_IDIV:
-            {
-                pop_err = POP_NO_ERR;
-                Elem_t denominator = PopStack(&spu->stk, &pop_err);
-                Elem_t numerator   = PopStack(&spu->stk, &pop_err);
-
-                val = CalcIdiv(numerator, denominator);
-
-                PushStack(&spu->stk, val);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Idiv: %d\n", "proc", ip_init, val);
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_CALL:
-            {
-                PushStack(&spu->call_stk, (Elem_t)(ip + sizeof(cmd_code_t) + sizeof(Elem_t)));
-
-                ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Call to %lu\n", "proc", ip_init, ip);
-
-                break;
-            }
-
-            case CMD_RET:
-            {
-                pop_err = POP_NO_ERR;
-                ip = PopStack(&spu->call_stk, &pop_err);
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Ret to %lu\n", "proc", ip_init, ip);
-
-                break;
-            }
-
-            case CMD_JMP:
-            {
-                ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
-
-                break;
-            }
-            case CMD_JA:
-            {
-                int cmp_res = PopCmpTopStack(&spu->stk);
-
-                if (cmp_res > 0)
-                {
-                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
-                }
-                else
-                {
-                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
-                }
-
-                break;
-            }
-            case CMD_JAE:
-            {
-                int cmp_res = PopCmpTopStack(&spu->stk);
-
-                if (cmp_res >= 0)
-                {
-                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
-                }
-                else
-                {
-                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
-                }
-
-                break;
-            }
-
-            case CMD_JB:
-            {
-                int cmp_res = PopCmpTopStack(&spu->stk);
-
-                if (cmp_res < 0)
-                {
-                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
-                }
-                else
-                {
-                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
-                }
-
-                break;
-            }
-
-            case CMD_JBE:
-            {
-                int cmp_res = PopCmpTopStack(&spu->stk);
-
-                if (cmp_res <= 0)
-                {
-                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
-                }
-                else
-                {
-                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
-                }
-
-                break;
-            }
-
-            case CMD_JE:
-            {
-                int cmp_res = PopCmpTopStack(&spu->stk);
-
-                if (cmp_res == 0)
-                {
-                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
-                }
-                else
-                {
-                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
-                }
-
-                break;
-            }
-
-            case CMD_JNE:
-            {
-                int cmp_res = PopCmpTopStack(&spu->stk);
-
-                if (cmp_res != 0)
-                {
-                    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
-
-                    PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
-                }
-                else
-                {
-                    ip += CalcIpOffset(cmd); // skip integer pointer to a position in code
-                }
-
-                break;
-            }
+            #define DEF_CMD(name, num, text, have_arg, spu_code, ...)  \
+                case CMD_##name:                                       \
+                    {                                                  \
+                        spu_code;                                      \
+                        break;                                         \
+                    }                                                  \
+
+            #include "../commands.h"
+
+            #undef DEF_CMD
 
             default:
             {
-                fprintf(stderr, "SIGILL! Illegal instruction \"%d\" (%lu)\n", cmd, ip);
+                fprintf(stderr, "Illegal instruction \"%d\" (%lu)\n", cmd, ip_init);
 
                 return ILL_CDMCODE;
             }
@@ -504,7 +167,7 @@ Elem_t GetPushArg (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], El
     if (cmd & ARG_IMMED_VAL)
     {
         memcpy(&tmp_res, prog_code + ip, sizeof(Elem_t));
-        res += tmp_res * STK_PRECISION; // we multiply only here because in other cases values in ram and in regs are allready multiplied
+        res += tmp_res * STK_PRECISION;
 
         tmp_res = 0;
 
@@ -577,7 +240,7 @@ Elem_t * GetPopArgAddr (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[
     return reg_ptr;
 }
 
-static int CalcIpOffset (cmd_code_t cmd)
+int CalcIpOffset (cmd_code_t cmd)
 {
     int offset = sizeof(cmd_code_t);
 
@@ -617,14 +280,14 @@ int SPUCtor (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_siz
     if (CtorStack(&(spu->call_stk), call_stack_capacity) != CTOR_NO_ERR)
     {
         fprintf(stderr, "Call-Stack Constructor returned error\n");
-        abort();                                                    // aborting is justified
+        abort();
     }
 
     spu->RAM = (Elem_t *) calloc(ram_size, sizeof(Elem_t));
-    if (spu->RAM == NULL) // todo pointer validator
+    if (spu->RAM == NULL)
     {
         fprintf(stderr, "Unable to allocate memory for RAM\n");
-        abort();                        // todo return enum. What if we dont use RAM in asm code? program shouldnt fall
+        abort();
     }
 
     return 0;
@@ -666,6 +329,20 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
     return val_top - val_below;
 }
 
+static int ShowFrame(SPU * spu)
+{
+    for (int i = 0; i < SPU_VRAM_HIGHT; i++, printf("\n"))
+    {
+        for (int j = 0; j < SPU_VRAM_WIDTH; j++)
+        {
+            printf("%c%c", spu->RAM[VRAM_MAPPING + i * SPU_VRAM_HIGHT + j] / STK_PRECISION,
+                           spu->RAM[VRAM_MAPPING + i * SPU_VRAM_HIGHT + j] / STK_PRECISION);
+        }
+    }
+
+    return 0;
+}
+
 static Elem_t CalcMod (Elem_t numerator, Elem_t denominator)
 {
     return (Elem_t) numerator % denominator;
@@ -675,7 +352,7 @@ static Elem_t CalcIdiv (Elem_t numerator, Elem_t denominator)
 {
     Elem_t mod = CalcMod(numerator, denominator);
 
-    return (Elem_t) ( (float) numerator - mod) / (float) denominator * STK_PRECISION;
+    return (Elem_t) ( (float) numerator - mod) / denominator * STK_PRECISION;
 }
 
 static Elem_t MultInts (Elem_t frst, Elem_t scnd)
@@ -684,5 +361,5 @@ static Elem_t MultInts (Elem_t frst, Elem_t scnd)
 }
  Elem_t DivideInts(Elem_t numerator, int denominator)
  {
-    return (Elem_t) ( (float) numerator / (float) denominator * STK_PRECISION);
+    return (Elem_t) ( (float) numerator / denominator * STK_PRECISION);
  }
