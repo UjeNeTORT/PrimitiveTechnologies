@@ -10,7 +10,7 @@ pop
 out
 hlt
 
-Factorial:
+Factorial: ; current factorial is stored in rax
 
 push 0
 push rax
