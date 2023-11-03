@@ -1,0 +1,142 @@
+in
+pop rax
+in
+pop rbx
+in
+pop rcx
+
+call CaseAZero ; hlts inside if a == 0
+
+; if program didnt stop we continue to solve for a b c as usual
+
+call Discr ; discr -> rdx
+
+call CheckDiscrLessZero
+
+;
+
+call x1
+
+; x1
+
+call x2
+
+; x2 x1
+
+out
+out
+
+hlt
+
+x1:
+
+push rbx
+push -1
+mul
+
+push rdx
+sqrt
+sub
+
+push 2
+push rax
+mul
+
+div
+
+ret
+
+x2:
+
+push rbx
+push -1
+mul
+
+push rdx
+sqrt
+add
+
+push 2
+push rax
+mul
+
+div
+
+ret
+
+Discr:
+
+push rbx
+sqr
+
+push 4
+push rax
+push rcx
+
+mul
+mul
+
+sub
+
+pop rdx
+
+ret
+
+CaseAZero:
+
+push rax
+push 0
+
+jne RetAZero
+
+push rbx
+push 0
+
+jne Linear ; hlt there
+
+push rcx
+push 0
+
+jne NoSolutions ; hlt there
+
+; endless solutions case - print 3 3 3
+
+push 3
+push 3
+push 3
+
+out
+out
+out
+hlt
+
+RetAZero:
+ret
+
+NoSolutions:
+push 0
+push 0
+push 0
+out
+out
+out
+hlt
+
+Linear:
+
+push rcx
+push rbx
+
+div
+
+out
+hlt
+
+CheckDiscrLessZero:
+
+push rdx
+push 0
+
+ja NoSolutions
+
+ret
