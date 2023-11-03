@@ -16,7 +16,7 @@
         fprintf(stderr, format, __VA_ARGS__); \
 
 /**
- * fill byte code array prog_code from in_fname file
+ * fill byte code array prog_code from "in_fname" file
 */
 static size_t    ReadByteCode   (const char * in_fname, cmd_code_t ** prog_code);
 
@@ -128,7 +128,11 @@ size_t ReadByteCode (const char * in_fname, cmd_code_t ** prog_code)
 
     // read size of the long long byte code array
     size_t n_bytes = 0;
-    fread(&n_bytes, sizeof(size_t), 1, in_file);
+    if (fread(&n_bytes, sizeof(size_t), 1, in_file) != 1)
+    {
+        fprintf(stderr, "Presentation error: could not read size from byte code\n");
+        abort();
+    }
 
     // read byte code array: form and fill prog_code array
     *prog_code = (cmd_code_t *) calloc(n_bytes, sizeof(cmd_code_t));

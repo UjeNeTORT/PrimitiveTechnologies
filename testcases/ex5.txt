@@ -3,31 +3,58 @@ pop     rax
 
 push    1
 
+call NZero
+
+push    rax
+
 call    Factorial
 
-out
+Print:
 
-hlt
+    out
 
-Factorial:  ; current n is stored in rax,
-            ; result is stored in stack
+    hlt
 
-    push    0
+NoSols:
+
+    push    -1
+
+    out
+
+    hlt
+
+Factorial:
+
     push    rax
-
+    push    1
     je      Ret
-
-    push    rax ; current n
-    mul         ; multiply with value from stack
 
     push    rax
     push    1
     sub
     pop     rax
 
+    push    rax
     call    Factorial
+    mul
 
     Ret:
-
         ret
+
+NZero:
+
+    push    rax
+    push    0
+
+    je      Print   ; leads to hlt
+
+    push    rax
+    push    0
+
+    ja      NoSols  ; leads to hlt
+
+    ret
+
+
+
 

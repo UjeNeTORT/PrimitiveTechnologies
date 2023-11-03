@@ -52,7 +52,7 @@ SPU_CODE
 {
     Elem_t arg = GetPushArg(prog_code, ip, spu->gp_regs, spu->RAM);
 
-    PushStack(&spu->stk, arg);
+    PUSH(arg);
 
     ip += CalcIpOffset(cmd);
 
@@ -86,7 +86,7 @@ SPU_CODE
         }
 
         pop_err = POP_NO_ERR;
-        *arg_ptr = PopStack(&spu->stk, &pop_err);
+        *arg_ptr = POP();
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Pop number to %p\n", "proc", ip_init, arg_ptr);
 
@@ -95,7 +95,7 @@ SPU_CODE
     else
     {
         pop_err = POP_NO_ERR;
-        PopStack(&spu->stk, &pop_err);
+        POP();
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Pop number\n", "proc", ip_init);
 
@@ -121,7 +121,11 @@ SPU_CODE
 {
     fprintf(stdout, "\n>> ");
 
-    fscanf(stdin, "%d", &val);
+    if (fscanf(stdin, "%d", &val) != 1)
+    {
+        fprintf(stderr, "Value for \"in\" is not given or incorrect\n");
+        abort();
+    }
 
     val *= STK_PRECISION;
 
@@ -155,9 +159,9 @@ ASM_CODE
 ;,
 
 DISASM_CODE
-{
-    fprintf_listing_no_arg(fout, prog_code, ip, "out");
-}
+    {
+        fprintf_listing_no_arg(fout, prog_code, ip, "out");
+    }
 )
 
 // ===============================================================================================

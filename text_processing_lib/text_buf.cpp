@@ -93,7 +93,11 @@ int ReadBuf(const char * const file, char **buf) {
 
     *buf = (char *) calloc(f_size + 1, sizeof(char));
 
-    fread(*buf, sizeof(char), f_size, fin);
+    if (fread(*buf, sizeof(char), f_size, fin) != f_size)
+    {
+        fprintf(stderr, "ReadBuf: readen != f_size\n");
+        abort();
+    }
 
     fclose(fin);
 

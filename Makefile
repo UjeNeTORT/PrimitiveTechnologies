@@ -1,4 +1,4 @@
-options = -O2
+options = -Wformat=2
 
 asm_flags = --finname testcases/ex5.txt
 spu_flags = --finname translated.bin

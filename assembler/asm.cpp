@@ -454,13 +454,13 @@ int TokenizeText (char ** text, size_t n_lines, char * text_tokenized)
     text_tokenized = tt_init;
 
     // calculate number of tokens
-    int scan_res = sscanf(text_tokenized, "%s %n", &token, &symbs);
+    int scan_res = sscanf(text_tokenized, "%s %n", token, &symbs);
     while (scan_res != 0 && scan_res != EOF)
     {
         text_tokenized += symbs;
         n_tokens++;
 
-        scan_res = sscanf(text_tokenized, "%s %n", &token, &symbs);
+        scan_res = sscanf(text_tokenized, "%s %n", token, &symbs);
     }
 
     return n_tokens;
@@ -535,14 +535,16 @@ int IsLabel(const char * token)
 {
     assert (token);
 
-    const char * col_pos = 0;
-    char * temp = 0;
+    const char * col_pos = strchr(token, ':');
+    char *       temp    = 0;
 
-    if ((col_pos = strchr(token, ':')))
+    if (col_pos)
     {
-        if (sscanf(col_pos, "%s", temp))
+        int scan_res = sscanf(col_pos, "%s", temp);
+        if (scan_res)
         {
             fprintf(stderr, "SyntaxError! \"%s\" after \":\" in label name\n", temp);
+
             return 0;
         }
 
