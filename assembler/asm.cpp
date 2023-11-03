@@ -72,7 +72,7 @@ int main(int argc, char * argv[])
 {
     fprintf(stdout, "\n"
                     "# Assembler by NeTort\n"
-                    "(c) TIKHONOV YAROSLAV 2023\n\n");
+                    "# (c) TIKHONOV YAROSLAV 2023\n\n");
 
 
     for (int argn = 0; argn < argc; argn++)
