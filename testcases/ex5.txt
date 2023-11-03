@@ -1,18 +1,16 @@
 in
-
 pop     rax
 
 push    1
 
 call    Factorial
 
-pop
-
 out
 
 hlt
 
-Factorial:  ; current value is stored in rax
+Factorial:  ; current n is stored in rax,
+            ; result is stored in stack
 
     push    0
     push    rax
@@ -20,7 +18,7 @@ Factorial:  ; current value is stored in rax
     je      Ret
 
     push    rax ; current n
-    mul
+    mul         ; multiply with value from stack
 
     push    rax
     push    1
