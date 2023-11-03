@@ -105,40 +105,7 @@ SPU_CODE
 
 ASM_CODE
 {
-    symbs  = 0;
-    char reg_id = 0;
-    int  val    = 0;
-
-    if (sscanf(text, "[ r%cx + %d ] %n", &reg_id, &val, &symbs) == 2 ||
-        sscanf(text, "[ %d + r%cx ] %n", &val, &reg_id, &symbs) == 2)
-    {
-        reg_id -= 'a';
-        ASSERT_REG_ID(reg_id);
-
-        EmitCodeSum(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | ARG_IMMED_VAL | CMD_POP, val, reg_id);
-        text += symbs;
-    }
-    else if (sscanf(text, "[ r%cx ] %n", &reg_id, &symbs) == 1)
-    {
-        reg_id -= 'a';
-        ASSERT_REG_ID(reg_id);
-
-        EmitCodeReg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_REGTR_VAL | CMD_POP, reg_id);
-        text += symbs;
-    }
-    else if (sscanf(text, "[ %d ] %n", &val, &symbs) == 1)
-    {
-        EmitCodeArg(prog_code, &n_bytes, ARG_MEMRY_VAL | ARG_IMMED_VAL | CMD_POP, val);
-        text += symbs;
-    }
-    else if (sscanf(text, "r%cx %n", &reg_id, &symbs) == 1)
-    {
-        reg_id -= 'a';
-        ASSERT_REG_ID(reg_id);
-
-        EmitCodeReg(prog_code, &n_bytes, ARG_REGTR_VAL | CMD_POP, reg_id);
-        text += symbs;
-    }
+    ProcessPopArguments(prog_code, &n_bytes, &text);
 },
 
 DISASM_CODE
