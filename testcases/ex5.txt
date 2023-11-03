@@ -1,33 +1,35 @@
 in
-pop rax
 
-push 1
+pop     rax
 
-call Factorial
+push    1
+
+call    Factorial
 
 pop
 
 out
+
 hlt
 
-Factorial: ; current factorial is stored in rax
+Factorial:  ; current value is stored in rax
 
-push 0
-push rax
+    push    0
+    push    rax
 
-je Ret
+    je      Ret
 
-push rax
-mul
+    push    rax ; current n
+    mul
 
-push rax
-push 1
-sub
-pop  rax
+    push    rax
+    push    1
+    sub
+    pop     rax
 
-call Factorial
+    call    Factorial
 
-Ret:
+    Ret:
 
-ret
+    ret
 

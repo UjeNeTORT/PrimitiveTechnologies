@@ -1,25 +1,25 @@
 in
-pop rax
-in
-pop rbx
-in
-pop rcx
+pop     rax
 
-call CaseAZero ; hlts inside if a == 0
+in
+pop     rbx
+
+in
+pop     rcx
+
+call    CaseAZero ; hlts inside if a == 0
 
 ; if program didnt stop we continue to solve for a b c as usual
 
-call Discr ; discr -> rdx
+call    Discr ; discr -> rdx
 
-call CheckDiscrLessZero
+call    CheckDiscrLessZero
 
-;
-
-call x1
+call    x1
 
 ; x1
 
-call x2
+call    x2
 
 ; x2 x1
 
@@ -30,113 +30,117 @@ hlt
 
 x1:
 
-push rbx
-push -1
-mul
+    push    rbx
+    push    -1
+    mul
 
-push rdx
-sqrt
-sub
+    push    rdx
+    sqrt
+    sub
 
-push 2
-push rax
-mul
+    push    2
+    push    rax
+    mul
 
-div
+    div
 
-ret
+    ret
 
 x2:
 
-push rbx
-push -1
-mul
+    push    rbx
+    push    -1
+    mul
 
-push rdx
-sqrt
-add
+    push    rdx
+    sqrt
+    add
 
-push 2
-push rax
-mul
+    push    2
+    push    rax
+    mul
 
-div
+    div
 
-ret
+    ret
 
 Discr:
 
-push rbx
-sqr
+    push    rbx
+    sqr
 
-push 4
-push rax
-push rcx
+    push    4
+    push    rax
+    push    rcx
 
-mul
-mul
+    mul
+    mul
 
-sub
+    sub
 
-pop rdx
+    pop     rdx
 
-ret
+    ret
 
 CaseAZero:
 
-push rax
-push 0
+    push    rax
+    push    0
 
-jne RetAZero
+    jne     RetAZero
 
-push rbx
-push 0
+    push    rbx
+    push    0
 
-jne Linear ; hlt there
+    jne     Linear ; hlt there
 
-push rcx
-push 0
+    push    rcx
+    push    0
 
-jne NoSolutions ; hlt there
+    jne     NoSolutions ; hlt there
 
-; endless solutions case - print 3 3 3
+    ; endless solutions case - print 3 3 3
 
-push 3
-push 3
-push 3
+    push    3
+    push    3
+    push    3
 
-out
-out
-out
-hlt
+    out
+    out
+    out
 
-RetAZero:
-ret
+    hlt
+
+    RetAZero:
+        ret
 
 NoSolutions:
-push 0
-push 0
-push 0
-out
-out
-out
-hlt
+    push    0
+    push    0
+    push    0
+
+    out
+    out
+    out
+
+    hlt
 
 Linear:
 
-push rcx
-push rbx
+    push    rcx
+    push    rbx
 
-div
+    div
 
-out
-hlt
+    out
+
+    hlt
 
 CheckDiscrLessZero:
 
-push rdx
-push 0
+    push    rdx
+    push    0
 
-ja NoSolutions
+    ja      NoSolutions
 
-ret
+    ret
