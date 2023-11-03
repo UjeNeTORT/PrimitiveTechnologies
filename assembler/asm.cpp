@@ -229,7 +229,7 @@ int TranslateProgram (char * text, cmd_code_t * prog_code) {
                 abort();
             }
 
-            memset(token, 0, MAX_CMD); // clean memory in token // todo catch errors
+            memset(token, 0, MAX_CMD); // clean memory in token
             memset(temp_token, 0, MAX_CMD);
 
         }
