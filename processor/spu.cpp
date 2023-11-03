@@ -2,18 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <stdarg.h>
 #include <math.h>
 
 #include "../enums.h"
 #include "spu.h"
 #include "../stacklib/stack.h"
 #include "../text_processing_lib/text_buf.h"
-
-#define SHOW_INTERMED_INFO 0
-#define PRINTF_INTERMED_INFO(format, ...)     \
-    if (SHOW_INTERMED_INFO)                   \
-        fprintf(stderr, format, __VA_ARGS__); \
 
 /**
  * fill byte code array prog_code from "in_fname" file
@@ -77,6 +72,8 @@ static Elem_t    DivideInts     (Elem_t numerator, Elem_t denominator);
  * multiply (precise)
 */
 static Elem_t    MultInts       (Elem_t frst, Elem_t scnd);
+
+static int      printf_intermed_info (const char * format, ...);
 
 int main(int argc, char * argv[]) {
 
@@ -353,7 +350,9 @@ int SPUDtor (SPU * spu)
     return 0;
 }
 
-Elem_t PopCmpTopStack(stack * stk_ptr) {
+Elem_t PopCmpTopStack(stack * stk_ptr)
+{
+    assert(stk_ptr);
 
     Elem_t val_top = 0;
     Elem_t val_below = 0;
@@ -379,6 +378,8 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
 
 static int ShowFrame(SPU * spu)
 {
+    assert(spu);
+
     for (int i = 0; i < SPU_VRAM_HIGHT; i++, printf("\n"))
     {
         for (int j = 0; j < SPU_VRAM_WIDTH; j++)
@@ -407,7 +408,21 @@ static Elem_t MultInts (Elem_t frst, Elem_t scnd)
 {
     return frst * scnd / STK_PRECISION;
 }
- Elem_t DivideInts(Elem_t numerator, int denominator)
- {
-    return (Elem_t) ( (float) numerator / denominator * STK_PRECISION);
- }
+
+Elem_t DivideInts(Elem_t numerator, int denominator)
+{
+   return (Elem_t) ( (float) numerator / denominator * STK_PRECISION);
+}
+
+int printf_intermed_info (const char * format, ...)
+{
+    assert(format);
+
+    va_list ptr;
+
+    va_start(ptr, format);
+
+    vfprintf(stderr, format, ptr);
+
+    va_end(ptr);
+}

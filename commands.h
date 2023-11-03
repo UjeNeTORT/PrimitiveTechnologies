@@ -32,7 +32,7 @@ DEF_CMD (HLT, 31, "hlt", 0,
 
 SPU_CODE
     {
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Hlt encountered, goodbye!\n", "proc", ip_init);
+        printf_intermed_info("# (%s - %3ld) Hlt encountered, goodbye!\n", "proc", ip_init);
 
         return REACH_HLT;
     },
@@ -59,7 +59,7 @@ SPU_CODE
 
         ip += CalcIpOffset(cmd);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Push GetArg -> %d\n", "proc", ip_init, arg);
+        printf_intermed_info("# (%s - %3ld) Push GetArg -> %d\n", "proc", ip_init, arg);
     },
 
 ASM_CODE
@@ -91,7 +91,7 @@ SPU_CODE
             pop_err = POP_NO_ERR;
             *arg_ptr = POP();
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Pop number to %p\n", "proc", ip_init, arg_ptr);
+            printf_intermed_info("# (%s - %3ld) Pop number to %p\n", "proc", ip_init, arg_ptr);
 
             ip += CalcIpOffset(cmd);
         }
@@ -100,7 +100,7 @@ SPU_CODE
             pop_err = POP_NO_ERR;
             POP();
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Pop number\n", "proc", ip_init);
+            printf_intermed_info("# (%s - %3ld) Pop number\n", "proc", ip_init);
 
             ip += CalcIpOffset(cmd);
         }
@@ -181,7 +181,7 @@ SPU_CODE
         val = POP() + POP();
         PUSH(val);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Add: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Add: %d\n", "proc", ip_init, val);
 
         ip += CalcIpOffset(cmd);
     },
@@ -207,7 +207,7 @@ SPU_CODE
         val += POP();
         PUSH(val);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Sub: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Sub: %d\n", "proc", ip_init, val);
 
         ip += CalcIpOffset(cmd);
     },
@@ -231,7 +231,7 @@ SPU_CODE
         pop_err = POP_NO_ERR;
         val = MultInts(POP(), POP());
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Mul: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Mul: %d\n", "proc", ip_init, val);
 
         PUSH(val);
 
@@ -264,7 +264,7 @@ SPU_CODE
 
         PUSH(val);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Div: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Div: %d\n", "proc", ip_init, val);
 
         ip += CalcIpOffset(cmd);
     },
@@ -287,7 +287,7 @@ SPU_CODE
     {
         ip = JMP(ip);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
+        printf_intermed_info("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
     },
 
 ASM_CODE
@@ -314,7 +314,7 @@ SPU_CODE
         {
             ip = JMP(ip);
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
+            printf_intermed_info("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
         }
         else
         {
@@ -347,7 +347,7 @@ SPU_CODE
         {
             ip = JMP(ip);
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
+            printf_intermed_info("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
         }
         else
         {
@@ -380,7 +380,7 @@ SPU_CODE
         {
             ip = JMP(ip);
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
+            printf_intermed_info("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
         }
         else
         {
@@ -413,7 +413,7 @@ SPU_CODE
         {
             ip = JMP(ip);
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
+            printf_intermed_info("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
         }
         else
         {
@@ -445,7 +445,7 @@ SPU_CODE
         {
             ip = JMP(ip);
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
+            printf_intermed_info("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
         }
         else
         {
@@ -477,7 +477,7 @@ SPU_CODE
         {
             ip = JMP(ip);
 
-            PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
+            printf_intermed_info("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
         }
         else
         {
@@ -507,7 +507,7 @@ SPU_CODE
 
         ip = JMP(ip);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Call to %lu\n", "proc", ip_init, ip);
+        printf_intermed_info("# (%s - %3ld) Call to %lu\n", "proc", ip_init, ip);
     },
 
 ASM_CODE
@@ -531,7 +531,7 @@ SPU_CODE
         pop_err = POP_NO_ERR;
         ip = PopStack(&spu->call_stk, &pop_err);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Ret to %lu\n", "proc", ip_init, ip);
+        printf_intermed_info("# (%s - %3ld) Ret to %lu\n", "proc", ip_init, ip);
     },
 
 ASM_CODE
@@ -555,7 +555,7 @@ SPU_CODE
 
         val = (int) sqrt(val * STK_PRECISION);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Sqrt: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Sqrt: %d\n", "proc", ip_init, val);
 
         PUSH(val);
 
@@ -583,7 +583,7 @@ SPU_CODE
 
         val = val * val / STK_PRECISION;
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Sqr: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Sqr: %d\n", "proc", ip_init, val);
 
         PUSH(val);
 
@@ -614,7 +614,7 @@ SPU_CODE
 
         PUSH(val);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Mod: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Mod: %d\n", "proc", ip_init, val);
 
         ip += CalcIpOffset(cmd);
     },
@@ -643,7 +643,7 @@ SPU_CODE
 
         PUSH(val);
 
-        PRINTF_INTERMED_INFO("# (%s - %3ld) Idiv: %d\n", "proc", ip_init, val);
+        printf_intermed_info("# (%s - %3ld) Idiv: %d\n", "proc", ip_init, val);
 
         ip += CalcIpOffset(cmd);
     },

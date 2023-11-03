@@ -6,6 +6,8 @@
 
 #include "../stacklib/stack.h"
 
+const int SHOW_INTERMED_INFO = 1;
+
 const int SPU_STK_CAPA      = 10000;
 const int SPU_CALL_STK_CAPA = 100;
 const int SPU_REGS_NUM      = 26;  // 26 letters in english alphabet
