@@ -668,14 +668,7 @@ DEF_CMD (FRAME, 22, "frame", 0,
 
 SPU_CODE
 {
-    for (int i = 0; i < SPU_VRAM_HIGHT; i++, printf("\n"))
-    {
-        for (int j = 0; j < SPU_VRAM_WIDTH; j++)
-        {
-            printf("%c%c", spu->RAM[VRAM_MAPPING + i * SPU_VRAM_HIGHT + j] / STK_PRECISION,
-                           spu->RAM[VRAM_MAPPING + i * SPU_VRAM_HIGHT + j] / STK_PRECISION);
-        }
-    }
+    ShowFrame(spu);
 
     ip += CalcIpOffset(cmd);
 },

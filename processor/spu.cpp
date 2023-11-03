@@ -23,6 +23,7 @@ static int       SPUDtor        (SPU * spu);
 
 static Elem_t    GetPushArg     (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
 static Elem_t *  GetPopArgAddr  (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
+static int       ShowFrame      (SPU * spu);
 
 static int       CmdCodeIsValid (cmd_code_t cmd);
 
@@ -326,6 +327,20 @@ Elem_t PopCmpTopStack(stack * stk_ptr) {
     }
 
     return val_top - val_below;
+}
+
+static int ShowFrame(SPU * spu)
+{
+    for (int i = 0; i < SPU_VRAM_HIGHT; i++, printf("\n"))
+    {
+        for (int j = 0; j < SPU_VRAM_WIDTH; j++)
+        {
+            printf("%c%c", spu->RAM[VRAM_MAPPING + i * SPU_VRAM_HIGHT + j] / STK_PRECISION,
+                           spu->RAM[VRAM_MAPPING + i * SPU_VRAM_HIGHT + j] / STK_PRECISION);
+        }
+    }
+
+    return 0;
 }
 
 static Elem_t CalcMod (Elem_t numerator, Elem_t denominator)
