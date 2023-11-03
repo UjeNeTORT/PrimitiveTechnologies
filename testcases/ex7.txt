@@ -1,0 +1,179 @@
+in
+pop rax
+in
+pop
+rbx
+in
+pop rcx
+
+push rcx
+push rax
+push rbx
+
+call CaseAZero ; prints 3 3 3 if endless solutions
+
+push rcx
+push rax
+push rbx
+
+call Discr ; верно
+
+pop rdx
+
+call IfAzero
+
+call IfDiscrPos
+
+push rdx
+sqrt
+pop rdx ; square root of discriminant
+
+call x1
+out
+call x2
+out
+
+hlt ; --------------------------------------------
+
+Discr: ; ++++++++++++++++++++++++++++
+
+call b_square
+
+push rax
+push rcx
+push 4
+mul
+mul
+
+sub
+
+ret ;-------------------------------
+
+b_square: ; ++++++++++++++++++++++++++++
+
+pop rbx
+push rbx
+push rbx
+mul
+
+ret ;-------------------------------
+
+CaseAZero: ; ++++++++++++++++++++++++++++
+
+push 0
+pop rrx ; result if 3 - endless
+
+push 0
+call IncrResIfEq
+
+push 0
+call IncrResIfEq
+
+push 0
+call IncrResIfEq
+
+push 3
+
+push rrx
+
+je EndlessOut
+
+ret ;-------------------------------
+
+IncrResIfEq: ; ++++++++++++++++++++++++++++
+
+jne Ret1
+
+push rrx
+push 1
+add
+pop rrx
+
+Ret1:
+ret ;-------------------------------
+
+EndlessOut: ; ++++++++++++++++++++++++++++
+
+push 3
+out
+push 3
+out
+push 3
+out
+
+hlt ;-------------------------------
+
+x1: ; ++++++++++++++++++++++++++++
+
+push rdx
+push -1
+push rbx
+mul
+add ; -b + sqrt(d) ok
+push 2
+push rax
+mul
+
+div ; x1 not ok
+
+ret ;-------------------------------
+
+x2: ; ++++++++++++++++++++++++++++
+
+push -1
+push rbx
+mul
+push rdx
+sub ; -b - sqrt(d)
+
+push 2
+push rax
+mul
+div
+
+ret ;-------------------------------
+
+IfDiscrPos: ; ++++++++++++++++++++++++++++
+push rdx
+push 0
+
+ja Abort
+
+ret ;-------------------------------
+
+IfAzero: ; ++++++++++++++++++++++++++++
+
+push rax
+push 0
+
+je Azero
+
+ret ;-------------------------------
+
+Azero: ; ++++++++++++++++++++++++++++
+
+push rbx
+push 0
+
+je NoSolutions
+
+; is a == 0 and b != 0 we solve linear equation
+
+push rcx
+push rbx
+div
+out
+hlt
+
+NoSolutions:
+
+push 0
+out
+push 0
+out
+push 0
+out
+
+hlt ;-------------------------------
+
+

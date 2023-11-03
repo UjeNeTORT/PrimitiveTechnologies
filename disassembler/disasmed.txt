@@ -1,0 +1,98 @@
+(0) 3               in
+(1) 66 0              pop rax
+(3) 3               in
+(4) 66 1              pop rbx
+(6) 3               in
+(7) 66 2              pop rcx
+(9) 65 2              push rcx
+(11) 65 0             push rax
+(13) 65 1             push rbx
+(15) 48 87          call 87
+(20) 65 2             push rcx
+(22) 65 0             push rax
+(24) 65 1             push rbx
+(26) 48 61          call 61
+(31) 66 3             pop rdx
+(33) 48 227         call 227
+(38) 48 214         call 214
+(43) 65 3             push rdx
+(45) 18             sqrt
+(46) 66 3             pop rdx
+(48) 48 172         call 172
+(53) 4              out
+(54) 48 193         call 193
+(59) 4              out
+(60) 31             hlt
+(61) 48 79          call 79
+(66) 65 0             push rax
+(68) 65 2             push rcx
+(70) 33 4             push 4
+(75) 7              mul
+(76) 7              mul
+(77) 6              sub
+(78) 17             ret
+(79) 66 1             pop rbx
+(81) 65 1             push rbx
+(83) 65 1             push rbx
+(85) 7              mul
+(86) 17             ret
+(87) 33 0             push 0
+(92) 66 17             pop rrx
+(94) 33 0             push 0
+(99) 48 137         call 137
+(104) 33 0            push 0
+(109) 48 137        call 137
+(114) 33 0            push 0
+(119) 48 137        call 137
+(124) 33 3            push 3
+(129) 65 17            push rrx
+(131) 46 153        je 153
+(136) 17            ret
+(137) 47 152        jne 152
+(142) 65 17            push rrx
+(144) 33 1            push 1
+(149) 5             add
+(150) 66 17            pop rrx
+(152) 17            ret
+(153) 33 3            push 3
+(158) 4             out
+(159) 33 3            push 3
+(164) 4             out
+(165) 33 3            push 3
+(170) 4             out
+(171) 31            hlt
+(172) 65 3            push rdx
+(174) 33 -1            push -1
+(180) 1             push 
+(181) 7             mul
+(182) 5             add
+(183) 33 2            push 2
+(188) 65 0            push rax
+(190) 7             mul
+(191) 8             div
+(192) 17            ret
+(193) 33 -1            push -1
+(199) 1             push 
+(200) 7             mul
+(201) 65 3            push rdx
+(203) 6             sub
+(204) 33 2            push 2
+(209) 65 0            push rax
+(211) 7             mul
+(212) 8             div
+(213) 17            ret
+(214) 65 3            push rdx
+(216) 33 0            push 0
+(221) 42 240        ja 240
+(226) 17            ret
+(227) 65 0            push rax
+(229) 33 0            push 0
+(234) 46 240        je 240
+(239) 17            ret
+(240) 33 0            push 0
+(245) 4             out
+(246) 33 0            push 0
+(251) 4             out
+(252) 33 0            push 0
+(257) 4             out
+(258) 31            hlt

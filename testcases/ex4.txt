@@ -1,0 +1,39 @@
+in
+pop rbx
+in
+pop rax
+in
+pop rcx
+
+push rcx
+push rax
+push rbx
+
+call Discr
+
+out
+
+hlt
+
+Discr:
+
+call b_square
+
+push rax
+push rcx
+push 4
+mul
+mul
+
+sub
+
+ret
+
+b_square:
+
+pop rbx
+push rbx
+push rbx
+mul
+
+ret

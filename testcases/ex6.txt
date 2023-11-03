@@ -1,0 +1,158 @@
+; PREPARATIONS
+push 100
+pop rgx     ; mapping of GRAM
+
+push 0
+pop rpx     ; current position in GRAM
+
+push 11
+pop rax     ; window width and height
+
+push rax
+push rax
+mul
+pop rwx     ; size of window (max rpx possible)
+
+push 5
+pop rcx     ; position of circle center in window
+
+; BEGINNING =============================================
+in
+pop rrx ; radius
+
+Cycle:
+
+; transform rpx val to x and y
+push rpx
+
+; rpx
+
+call GetXY
+
+; x y
+
+call SetPixel
+
+call IncrIndex
+
+push rwx
+push rpx
+
+jae ProgEnd
+
+jmp Cycle
+
+ProgEnd:
+
+frame
+
+hlt
+
+; ======================================================
+
+SetPixel:   ; x, y - > x0, y0 -> if x0^2 + y0^2 <= r^2
+
+call TransitionMatrix
+
+; x0 y0
+
+sqr
+pop  rtx
+sqr
+push rtx
+add
+
+; x0^2 + y0^2
+
+push rrx
+sqr
+
+; r^2 x0^2 + y0^2
+
+call SetOutside ; put "." no matter what
+
+jae SetInside  ; put "0" instead of dot in case we are inside
+
+SetPixelEnd:
+
+ret
+
+GetXY:
+
+push rpx
+push rax
+idiv        ; y
+
+push rpx
+push rax
+mod         ; x y
+
+ret
+
+TransitionMatrix:
+
+; x y
+
+pop  rtx
+push rcx
+push rtx
+push rcx
+
+; c x c y
+
+sub
+pop rtx
+sub
+push rtx
+
+; (x - c) (y - c)
+; x0 y0
+
+ret
+
+SetOutside:
+
+; get current pos in GRAM
+
+push rgx
+push rpx
+add
+
+; pop it to rtx
+
+pop rtx
+
+push 46 ; "." - background code
+
+pop [rtx]
+
+ret
+
+SetInside:
+
+    ; get current pos in GRAM
+
+    push rgx
+    push rpx
+    add
+
+    ; pop it to rtx
+
+    pop rtx
+
+    push 48 ; "0" - filler code
+
+    pop [rtx]
+
+    jmp SetPixelEnd
+
+IncrIndex:
+
+    push rpx
+    push 1
+    add
+
+    pop  rpx
+
+    ret
+

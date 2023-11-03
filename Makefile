@@ -1,6 +1,6 @@
 options = -O2
 
-asm_flags = --finname testcases/ex8.txt
+asm_flags = --finname testcases/ex6.txt
 spu_flags = --finname translated.bin
 
 DEFAULT = $(wildcard stacklib/*.cpp)

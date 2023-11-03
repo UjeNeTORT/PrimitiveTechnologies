@@ -1,0 +1,193 @@
+; PREPARATIONS
+push 100
+pop rgx     ; mapping of GRAM
+
+push 0
+pop rpx     ; current position in GRAM
+
+push 21
+pop rax     ; window width and height 
+
+push rax
+push rax
+mul
+pop rwx     ; size of window (max rpx possible)
+
+push 10
+pop rcx     ; position of circle center in window
+
+; BEGINNING =============================================
+in
+pop rrx ; radius
+
+Cycle:
+
+; transform rpx val to x and y
+push rpx
+
+; rpx
+
+call GetXY
+
+; x y
+
+call SetPixel
+
+call IncrIndex
+
+push rwx
+push rpx
+
+jae ProgEnd
+
+jmp Cycle
+
+ProgEnd:
+
+hlt
+
+; ======================================================
+
+SetPixel:   ; x, y - > x0, y0 -> if x0^2 + y0^2 <= r^2
+
+call TransitionMatrix
+
+; x0 y0
+
+sqr
+pop  rtx
+sqr
+push rtx
+add
+
+; x0^2 + y0^2
+
+push rrx
+sqr
+
+; r^2 x0^2 + y0^2
+
+call SetOutside ; put "." no matter what
+
+jae SetInside  ; put "0" instead of dot in case we are inside
+
+SetPixelEnd:
+
+ret
+
+GetXY:
+
+push rpx
+
+push 0
+pop rtx     ; y to rtx
+
+push rpx 
+pop  rsx  
+
+DivideNext:
+
+
+
+push rsx
+push rax
+sub
+
+pop  rsx
+
+push rsx
+push 0
+
+ja CalcX
+
+push rtx
+push 1
+add
+
+pop  rtx
+
+jmp DivideNext
+
+CalcX:
+
+push rtx ; y to stack
+
+push rpx
+push rtx
+push rax
+mul
+sub          ; x y
+
+; НЕ ДОПИСАНО ТОЛЬКО ЭТО ОСТАЛЬНОЕ ВРОДЕ ОК,
+; НЕ ЗАБЫТЬ СДЕЛАТЬ ЧТОБЫ ПЕЧАТАЛАСЬ ВИДЕОПАМЯТЬ
+
+
+ret
+
+TransitionMatrix:
+
+; x y
+
+pop  rtx
+push rcx
+push rtx
+push rcx
+
+; c x c y
+
+sub
+pop rtx
+sub
+push rtx
+
+; (x - c) (y - c)
+; x0 y0
+
+ret
+
+SetOutside:
+
+; get current pos in GRAM
+
+push rgx
+push rpx
+add
+
+; pop it to rtx
+
+pop rtx
+
+push 46 ; "." - background code
+
+pop [rtx]
+
+ret
+
+SetInside:
+
+; get current pos in GRAM
+
+push rgx
+push rpx
+add
+
+; pop it to rtx
+
+pop rtx
+
+push 48 ; "0" - filler code
+
+pop [rtx]
+
+jmp SetPixelEnd
+
+IncrIndex:
+
+push rpx
+push 1
+add
+
+pop rpx
+
+ret
+

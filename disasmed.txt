@@ -1,79 +1,70 @@
-(0) 3               in
-(1) 66 0              pop rax
-(3) 3               in
-(4) 66 1              pop rbx
-(6) 3               in
-(7) 66 2              pop rcx
-(9) 48 99           call 99
-(14) 48 81          call 81
-(19) 48 181         call 181
-(24) 48 37          call 37
-(29) 48 59          call 59
-(34) 4              out
-(35) 4              out
-(36) 31             hlt
-(37) 65 1             push rbx
-(39) 33 -1             push -1
-(44) 7              mul
-(45) 65 3             push rdx
-(47) 18             sqrt
-(48) 6              sub
-(49) 33 2             push 2
-(54) 65 0             push rax
-(56) 7              mul
-(57) 8              div
-(58) 17             ret
-(59) 65 1             push rbx
-(61) 33 -1             push -1
-(66) 7              mul
-(67) 65 3             push rdx
-(69) 18             sqrt
-(70) 5              add
-(71) 33 2             push 2
-(76) 65 0             push rax
-(78) 7              mul
-(79) 8              div
-(80) 17             ret
-(81) 65 1             push rbx
-(83) 19             sqr
-(84) 33 4             push 4
-(89) 65 0             push rax
-(91) 65 2             push rcx
-(93) 7              mul
-(94) 7              mul
-(95) 6              sub
-(96) 66 3             pop rdx
-(98) 17             ret
+(0) 33 100              push 100
+(5) 66 6              pop rgx
+(7) 33 0              push 0
+(12) 66 15             pop rpx
+(14) 33 11             push 11
+(19) 66 0             pop rax
+(21) 65 0             push rax
+(23) 65 0             push rax
+(25) 7              mul
+(26) 66 22             pop rwx
+(28) 33 5             push 5
+(33) 66 2             pop rcx
+(35) 3              in
+(36) 66 17             pop rrx
+(38) 65 15             push rpx
+(40) 48 97          call 97
+(45) 48 71          call 71
+(50) 48 157         call 157
+(55) 65 22             push rwx
+(57) 65 15             push rpx
+(59) 43 69          jae 69
+(64) 41 38          jmp 38
+(69) 22             frame
+(70) 31             hlt
+(71) 48 108         call 108
+(76) 19             sqr
+(77) 66 19             pop rtx
+(79) 19             sqr
+(80) 65 19             push rtx
+(82) 5              add
+(83) 65 17             push rrx
+(85) 19             sqr
+(86) 48 123         call 123
+(91) 43 138         jae 138
+(96) 17             ret
+(97) 65 15             push rpx
 (99) 65 0             push rax
-(101) 33 0            push 0
-(106) 47 154        jne 154
-(111) 65 1            push rbx
-(113) 33 0            push 0
-(118) 47 174        jne 174
-(123) 65 2            push rcx
-(125) 33 0            push 0
-(130) 47 155        jne 155
-(135) 33 3            push 3
-(140) 33 3            push 3
-(145) 33 3            push 3
-(150) 4             out
-(151) 4             out
-(152) 4             out
-(153) 31            hlt
-(154) 17            ret
-(155) 33 0            push 0
-(160) 33 0            push 0
-(165) 33 0            push 0
-(170) 4             out
-(171) 4             out
-(172) 4             out
-(173) 31            hlt
-(174) 65 2            push rcx
-(176) 65 1            push rbx
-(178) 8             div
-(179) 4             out
-(180) 31            hlt
-(181) 65 3            push rdx
-(183) 33 0            push 0
-(188) 42 155        ja 155
-(193) 17            ret
+(101) 21            idiv
+(102) 65 15            push rpx
+(104) 65 0            push rax
+(106) 20            mod
+(107) 17            ret
+(108) 66 19            pop rtx
+(110) 65 2            push rcx
+(112) 65 19            push rtx
+(114) 65 2            push rcx
+(116) 6             sub
+(117) 66 19            pop rtx
+(119) 6             sub
+(120) 65 19            push rtx
+(122) 17            ret
+(123) 65 6            push rgx
+(125) 65 15            push rpx
+(127) 5             add
+(128) 66 19            pop rtx
+(130) 33 46            push 46
+(135) -62 19           pop [rtx]
+(137) 17            ret
+(138) 65 6            push rgx
+(140) 65 15            push rpx
+(142) 5             add
+(143) 66 19            pop rtx
+(145) 33 48            push 48
+(150) -62 19           pop [rtx]
+(152) 41 96         jmp 96
+(157) 65 15            push rpx
+(159) 33 1            push 1
+(164) 5             add
+(165) 66 15            pop rpx
+(167) 17            ret
