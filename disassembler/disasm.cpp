@@ -6,42 +6,6 @@
 #include "../enums.h"
 #include "../processor/spu.h"
 
-#define FPRINTF_POP(stream, id, cmd, imm_arg, reg_id, name, symbs)  \
-    fprintf(stream, "(%lu) %d %n", id, cmd, &symbs);                \
-    if (cmd & ARG_IMMED_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "%d ", imm_arg);                            \
-    }                                                               \
-    if (cmd & ARG_REGTR_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "%d ", reg_id);                             \
-    }                                                               \
-    symbs = LISTING_CODE_TEXT_DISTANCE - symbs;                     \
-    for (int i = 0; i < symbs; i++)                                 \
-        fprintf(stream, " ");                                       \
-                                                                    \
-    fprintf(stream, "%s ", name);                                   \
-    if (cmd & ARG_MEMRY_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "[");                                       \
-    }                                                               \
-    if (cmd & ARG_REGTR_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "r%cx", 'a' + reg_id);                      \
-        if (cmd & ARG_IMMED_VAL) {                                  \
-            fprintf(stream, " + ");                                 \
-        }                                                           \
-    }                                                               \
-    if (cmd & ARG_IMMED_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "%d", imm_arg);                             \
-    }                                                               \
-    if (cmd & ARG_MEMRY_VAL)                                        \
-    {                                                               \
-        fprintf(stream, "]");                                       \
-    }                                                               \
-    fprintf(stream, "\n");
-
 const int    LISTING_CODE_TEXT_DISTANCE = 20;
 const char * DISASM_FILENAME            = "disasmed.txt";
 
@@ -114,193 +78,18 @@ int DisAssemble (const cmd_code_t * prog_code, size_t n_bytes, const char * out_
 
         switch (cmd & OPCODE_MSK)
         {
-            case CMD_HLT:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "hlt");
 
-                ip += CalcIpOffset(cmd);
+            #define DEF_CMD(name, num, text, spu_code, have_arg, code_have_arg, disasm_code)    \
+                case CMD_##name:                                                                \
+                {                                                                               \
+                    (disasm_code);                                                              \
+                    ip += CalcIpOffset(cmd);                                                    \
+                    break;                                                                      \
+                }                                                                               \
 
-                break;
-            }
+            #include "../commands.h"
 
-            case CMD_PUSH:
-            {
-
-                fprintf_push(fout, prog_code, ip, "push");
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_POP:
-            {
-                fprintf_pop(fout, prog_code, ip, "pop");
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_IN:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "in");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_OUT:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "out");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_FRAME:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "frame");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_ADD:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "add");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_SUB:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "sub");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_MUL:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "mul");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_DIV:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "div");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_SQRT:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "sqrt");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_SQR:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "sqr");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_MOD:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "mod");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_IDIV:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "idiv");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_CALL:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "call");
-
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_RET:
-            {
-                fprintf_listing_no_arg(fout, prog_code, ip, "ret");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_JMP:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "jmp");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-            // IMM
-            case CMD_JA:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "ja");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-            case CMD_JAE:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "jae");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_JB:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "jb");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_JBE:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "jbe");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_JE:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "je");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
-
-            case CMD_JNE:
-            {
-                fprintf_listing_jmp(fout, prog_code, ip, "jne");
-                ip += CalcIpOffset(cmd);
-
-                break;
-            }
+            #undef DEF_CMD
 
             default:
             {
@@ -380,7 +169,7 @@ int fprintf_push (FILE * stream, const cmd_code_t * prog_code, int ip, const cha
     else
         reg_id = *(char *)(prog_code + ip + 1);
 
-    fprintf(stream, "(%lu) %d %n", ip, cmd, &symbs);
+    fprintf(stream, "(%d) %d %n", ip, cmd, &symbs);
 
     if (cmd & ARG_IMMED_VAL)
     {

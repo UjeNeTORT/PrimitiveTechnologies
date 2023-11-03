@@ -2,7 +2,8 @@
 DEF_CMD (name, num, text,
                         spu_code,
                         have_arg,
-                        code_have_arg <- for asm)
+                        code_have_arg <- for asm,
+                        disasm_code)
 */
 
 
@@ -23,6 +24,9 @@ DEF_CMD (name, num, text,
 #define POP()                       \
     PopStack(&spu->stk, &pop_err)   \
 
+#define JMP(ip)                                          \
+    *(Elem_t *)(prog_code + (ip) + sizeof(cmd_code_t));  \
+
 // ===============================================================================================
 DEF_CMD (HLT, 31, "hlt", 0,
 
@@ -34,7 +38,11 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "hlt");
+}
 )
 
 // ===============================================================================================
@@ -54,6 +62,11 @@ SPU_CODE
 ASM_CODE
 {
     ProcessPushArguments(prog_code, &n_bytes, &text);
+},
+
+DISASM_CODE
+{
+    fprintf_push(fout, prog_code, ip, "push");
 }
 )
 
@@ -126,6 +139,11 @@ ASM_CODE
         EmitCodeReg(prog_code, &n_bytes, ARG_REGTR_VAL | CMD_POP, reg_id);
         text += symbs;
     }
+},
+
+DISASM_CODE
+{
+    fprintf_pop(fout, prog_code, ip, "pop");
 }
 )
 
@@ -146,7 +164,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "in");
+}
 )
 
 // ===============================================================================================
@@ -162,7 +185,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "out");
+}
 )
 
 // ===============================================================================================
@@ -181,7 +209,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "add");
+}
 )
 
 // ===============================================================================================
@@ -200,7 +233,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "sub");
+}
 )
 
 // ===============================================================================================
@@ -219,7 +257,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "mul");
+}
 )
 
 // ===============================================================================================
@@ -243,7 +286,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "div");
+}
 )
 
 // ===============================================================================================
@@ -251,7 +299,7 @@ DEF_CMD (JMP, 9, "jmp", 1,
 
 SPU_CODE
 {
-    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+    ip = JMP(ip);
 
     PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
 },
@@ -261,6 +309,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JMP, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "jmp");
 }
 )
 
@@ -273,7 +326,7 @@ SPU_CODE
 
     if (cmp_res > 0)
     {
-        ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+        ip = JMP(ip);
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
     }
@@ -289,6 +342,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JA, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "ja");
 }
 )
 
@@ -301,7 +359,7 @@ SPU_CODE
 
     if (cmp_res >= 0)
     {
-        ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+        ip = JMP(ip);
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
     }
@@ -317,6 +375,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JAE, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "jae");
 }
 )
 
@@ -329,7 +392,7 @@ SPU_CODE
 
     if (cmp_res < 0)
     {
-        ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+        ip = JMP(ip);
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
     }
@@ -345,6 +408,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JB, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "jb");
 }
 )
 
@@ -357,7 +425,7 @@ SPU_CODE
 
     if (cmp_res <= 0)
     {
-        ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+        ip = JMP(ip);
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
     }
@@ -372,6 +440,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JBE, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "jbe");
 }
 )
 
@@ -384,7 +457,7 @@ SPU_CODE
 
     if (cmp_res == 0)
     {
-        ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+        ip = JMP(ip);
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
     }
@@ -399,6 +472,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JE, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "je");
 }
 )
 
@@ -411,7 +489,7 @@ SPU_CODE
 
     if (cmp_res != 0)
     {
-        ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+        ip = JMP(ip);
 
         PRINTF_INTERMED_INFO("# (%s - %3ld) Jmp to %lu\n", "proc", ip_init, ip);
     }
@@ -426,6 +504,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_JNE, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "jne");
 }
 )
 
@@ -436,7 +519,7 @@ SPU_CODE
 {
     PushStack(&spu->call_stk, (Elem_t)(ip + sizeof(cmd_code_t) + sizeof(Elem_t)));
 
-    ip = *(Elem_t *)(prog_code + ip + sizeof(cmd_code_t));
+    ip = JMP(ip);
 
     PRINTF_INTERMED_INFO("# (%s - %3ld) Call to %lu\n", "proc", ip_init, ip);
 },
@@ -446,6 +529,11 @@ ASM_CODE
     int cmd_ptr = ProcessJmpArguments(&text, n_run, labels, n_lbls);
 
     EmitCodeArg(prog_code, &n_bytes, ARG_IMMED_VAL | CMD_CALL, cmd_ptr);
+},
+
+DISASM_CODE
+{
+    fprintf_listing_jmp(fout, prog_code, ip, "call");
 }
 )
 
@@ -461,7 +549,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "ret");
+}
 )
 
 // ===============================================================================================
@@ -482,7 +575,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "sqrt");
+}
 )
 
 // ===============================================================================================
@@ -503,7 +601,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "sqr");
+}
 )
 
 // ===============================================================================================
@@ -525,7 +628,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "mod");
+}
 )
 
 // ===============================================================================================
@@ -547,7 +655,12 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "idiv");
+}
 )
 
 // ===============================================================================================
@@ -568,5 +681,10 @@ SPU_CODE
 },
 
 ASM_CODE
-;
+;,
+
+DISASM_CODE
+{
+    fprintf_listing_no_arg(fout, prog_code, ip, "frame");
+}
 )

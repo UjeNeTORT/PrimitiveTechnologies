@@ -178,7 +178,7 @@ int TranslateProgram (char * text, cmd_code_t * prog_code) {
     char * text_init = text;
     cmd_code_t * prog_code_init = prog_code;
 
-    #define DEF_CMD(name, num, text, have_arg, spu_code, code_have_arg) \
+    #define DEF_CMD(name, num, text, have_arg, spu_code, code_have_arg, ...) \
         else if (strcmp(token, text) == 0)                              \
         {                                                               \
             if (have_arg)                                               \
