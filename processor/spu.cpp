@@ -15,23 +15,67 @@
     if (SHOW_INTERMED_INFO)                   \
         fprintf(stderr, format, __VA_ARGS__); \
 
+/**
+ * fill byte code array prog_code from in_fname file
+*/
 static size_t    ReadByteCode   (const char * in_fname, cmd_code_t ** prog_code);
+
+/**
+ * interpret instructions from prog_code array
+*/
 static RunBinRes RunBin         (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu);
 
 static int       SPUCtor        (SPU * spu, int stack_capacity, int call_stack_capacity, int ram_size);
 static int       SPUDtor        (SPU * spu);
 
+/**
+ * given position of cmd push in byte code array get argument for this cmd
+*/
 static Elem_t    GetPushArg     (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
+
+/**
+ * given position of cmd pop in byte code array get an address with which pop is to interact
+*/
 static Elem_t *  GetPopArgAddr  (const cmd_code_t * prog_code, size_t ip, Elem_t gp_regs[], Elem_t RAM[]);
+
+/**
+ * print VRAM to show "picture"
+*/
 static int       ShowFrame      (SPU * spu);
 
+/**
+ * validate cmd index
+*/
 static int       CmdCodeIsValid (cmd_code_t cmd);
 
+/**
+ * pop val_top val_below from stack and return val_top - val_below
+*/
 static Elem_t    PopCmpTopStack (stack * stk_ptr);
+
+/**
+ * given position in bytecode array return offset for ip
+*/
 static int       CalcIpOffset   (cmd_code_t cmd);
+
+/**
+ * calculate numerator % denominator (precise)
+*/
 static Elem_t    CalcMod        (Elem_t numerator, Elem_t denominator);
+
+/**
+ * calculate (numerator - numerator % denominator) / denominator (precise)
+*/
 static Elem_t    CalcIdiv       (Elem_t numerator, Elem_t denominator);
+
+/**
+ * calculate numerator / denominator (precise)
+*/
 static Elem_t    DivideInts     (Elem_t numerator, Elem_t denominator);
+
+/**
+ * multiply (precise)
+*/
 static Elem_t    MultInts       (Elem_t frst, Elem_t scnd);
 
 int main(int argc, char * argv[]) {
