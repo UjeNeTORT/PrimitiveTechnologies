@@ -73,6 +73,9 @@ static Elem_t    DivideInts     (Elem_t numerator, Elem_t denominator);
 */
 static Elem_t    MultInts       (Elem_t frst, Elem_t scnd);
 
+/**
+ * former macros for console logging
+*/
 static int      printf_intermed_info (const char * format, ...);
 
 int main(int argc, char * argv[]) {
@@ -418,11 +421,16 @@ int printf_intermed_info (const char * format, ...)
 {
     assert(format);
 
-    va_list ptr;
+    if (SHOW_INTERMED_INFO)
+    {
+        va_list ptr;
 
-    va_start(ptr, format);
+        va_start(ptr, format);
 
-    vfprintf(stderr, format, ptr);
+        vfprintf(stderr, format, ptr);
 
-    va_end(ptr);
+        va_end(ptr);
+    }
+
+    return 0;
 }
