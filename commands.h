@@ -18,6 +18,9 @@ DEF_CMD (name, num, text,
             abort();                                                                                            \
         }                                                                                                       \
 
+#define INCR_IP(cmd)         \
+    ip += CalcIpOffset(cmd); \
+
 #define PUSH(val)               \
     PushStack(&spu->stk, val);  \
 
@@ -57,7 +60,7 @@ SPU_CODE
 
         PUSH(arg);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
 
         printf_intermed_info("# (%s - %3ld) Push GetArg -> %d\n", "proc", ip_init, arg);
     },
@@ -93,7 +96,7 @@ SPU_CODE
 
             printf_intermed_info("# (%s - %3ld) Pop number to %p\n", "proc", ip_init, arg_ptr);
 
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
         else
         {
@@ -102,7 +105,7 @@ SPU_CODE
 
             printf_intermed_info("# (%s - %3ld) Pop number\n", "proc", ip_init);
 
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
     },
 
@@ -134,7 +137,7 @@ SPU_CODE
 
         PUSH(val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -157,7 +160,7 @@ SPU_CODE
 
         fprintf(stdout, "\n<< %.2f\n", (float) POP() / STK_PRECISION);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -183,7 +186,7 @@ SPU_CODE
 
         printf_intermed_info("# (%s - %3ld) Add: %d\n", "proc", ip_init, val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -209,7 +212,7 @@ SPU_CODE
 
         printf_intermed_info("# (%s - %3ld) Sub: %d\n", "proc", ip_init, val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -235,7 +238,7 @@ SPU_CODE
 
         PUSH(val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -266,7 +269,7 @@ SPU_CODE
 
         printf_intermed_info("# (%s - %3ld) Div: %d\n", "proc", ip_init, val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -318,7 +321,7 @@ SPU_CODE
         }
         else
         {
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
 
     },
@@ -351,7 +354,7 @@ SPU_CODE
         }
         else
         {
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
 
     },
@@ -384,7 +387,7 @@ SPU_CODE
         }
         else
         {
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
 
     },
@@ -417,7 +420,7 @@ SPU_CODE
         }
         else
         {
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
     },
 
@@ -449,7 +452,7 @@ SPU_CODE
         }
         else
         {
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
     },
 
@@ -481,7 +484,7 @@ SPU_CODE
         }
         else
         {
-            ip += CalcIpOffset(cmd);
+            INCR_IP(cmd);
         }
     },
 
@@ -559,7 +562,7 @@ SPU_CODE
 
         PUSH(val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -587,7 +590,7 @@ SPU_CODE
 
         PUSH(val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -616,7 +619,7 @@ SPU_CODE
 
         printf_intermed_info("# (%s - %3ld) Mod: %d\n", "proc", ip_init, val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -645,7 +648,7 @@ SPU_CODE
 
         printf_intermed_info("# (%s - %3ld) Idiv: %d\n", "proc", ip_init, val);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
@@ -666,7 +669,7 @@ SPU_CODE
     {
         ShowFrame(spu);
 
-        ip += CalcIpOffset(cmd);
+        INCR_IP(cmd);
     },
 
 ASM_CODE
