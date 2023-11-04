@@ -1,42 +1,36 @@
 in
 pop     rax
 
+call    NZero
+
 push    1
-
-call NZero
-
-push    rax
 
 call    Factorial
 
-Print:
+push    rbx
 
-    out
+out
 
-    hlt
-
-NoSols:
-
-    push    -1
-
-    out
-
-    hlt
+hlt
 
 Factorial:
 
-    push    rax
+    push    rax     ; if n == 1 ret
     push    1
     je      Ret
+
+    push    rax
 
     push    rax
     push    1
     sub
     pop     rax
 
-    push    rax
     call    Factorial
     mul
+
+    pop     rbx
+    push    rbx
 
     Ret:
         ret
@@ -46,15 +40,27 @@ NZero:
     push    rax
     push    0
 
-    je      Print   ; leads to hlt
+    je      Print0
 
     push    rax
     push    0
 
-    ja      NoSols  ; leads to hlt
+    ja      PrintLess0
 
     ret
 
+Print0:
 
+    push    1
 
+    out
+
+    hlt
+
+PrintLess0:
+
+    push    -1
+
+    out
+    hlt
 
