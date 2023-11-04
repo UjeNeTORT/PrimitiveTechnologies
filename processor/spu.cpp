@@ -76,9 +76,17 @@ static Elem_t    MultInts       (Elem_t frst, Elem_t scnd);
 /**
  * former macros for console logging
 */
-static int      printf_intermed_info (const char * format, ...);
+static int      printf_intermed_info (const char * format, ...) __attribute__(( format (printf, 1, 2) ));
 
-int main(int argc, char * argv[]) {
+int main(int argc, char * argv[])
+{
+    // todelete
+
+    double a = 5.1;
+    const char * country = "Japan";
+    printf_intermed_info("hello %d %s\n", a, country);
+
+    // todelete
 
     fprintf(stdout, "\n"
                     "# Processor by NeTort\n"
@@ -93,6 +101,12 @@ int main(int argc, char * argv[]) {
             bin_fname = argv[argn + 1];
             argn++;
         }
+    }
+
+    if (!bin_fname)
+    {
+        fprintf(stderr, "No translated file given\n");
+        abort();
     }
 
     SPU my_spu = {};
@@ -160,6 +174,8 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
     size_t ip = 0;
     size_t ip_init = 0;
 
+    txCreateWindow (700, 700);
+
     while (ip < n_bytes)
     {
         ip_init = ip;
@@ -187,6 +203,15 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             }
         }
         val = 0;
+
+    for (int i = 0; i < 11*11; i++)
+        {
+        txSetFillColor (spu.RAM[i + 100]? TX_RED : TX_BLUE);
+
+        int x = i % 11;
+        int y = i / 11;
+        txCircle (x*55, y*55, 50);
+        }
     }
 
     return REACH_END;
@@ -427,9 +452,11 @@ int printf_intermed_info (const char * format, ...)
 
         va_start(ptr, format);
 
-        vfprintf(stderr, format, ptr);
+        int res = vfprintf(stderr, format, ptr);
 
         va_end(ptr);
+
+        return res;
     }
 
     return 0;
