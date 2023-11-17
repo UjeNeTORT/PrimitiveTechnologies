@@ -1,7 +1,7 @@
 in
 pop     rax
 
-call    NZero
+call    NZeroOne
 
 push    1
 
@@ -35,12 +35,17 @@ Factorial:
     Ret:
         ret
 
-NZero:
+NZeroOne:
 
     push    rax
     push    0
 
-    je      Print0
+    je      Print01
+
+    push    rax
+    push    1
+
+    je      Print01
 
     push    rax
     push    0
@@ -49,7 +54,7 @@ NZero:
 
     ret
 
-Print0:
+Print01:
 
     push    1
 

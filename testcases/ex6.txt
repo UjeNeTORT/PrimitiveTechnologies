@@ -1,9 +1,9 @@
 ; PREPARATIONS
 push    100
-pop     rgx     ; mapping of GRAM
+pop     rgx     ; mapping of VRAM
 
 push    0
-pop     rpx     ; current position in GRAM
+pop     rpx     ; current position in VRAM
 
 push    11
 pop     rax     ; window width and height

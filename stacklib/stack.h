@@ -12,8 +12,8 @@
 #define STACK_CANARY_PROTECT
 #define DATA_CANARY_PROTECT
 
-#define STACK_HASH_PROTECT
-#define DATA_HASH_PROTECT
+// #define STACK_HASH_PROTECT
+// #define DATA_HASH_PROTECT
 
 //-------------------------------------------------------------------------------------
 typedef int    Elem_t;

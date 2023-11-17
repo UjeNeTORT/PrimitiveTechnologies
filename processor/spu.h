@@ -6,7 +6,7 @@
 
 #include "../stacklib/stack.h"
 
-const int SHOW_INTERMED_INFO = 0;
+const int SHOW_INTERMED_INFO = 1;
 
 const int SPU_STK_CAPA      = 10000;
 const int SPU_CALL_STK_CAPA = 100;

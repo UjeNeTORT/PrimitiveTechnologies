@@ -174,8 +174,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
     size_t ip = 0;
     size_t ip_init = 0;
 
-    txCreateWindow (700, 700);
-
     while (ip < n_bytes)
     {
         ip_init = ip;
@@ -203,15 +201,6 @@ RunBinRes RunBin (const cmd_code_t * prog_code, size_t n_bytes, SPU * spu)
             }
         }
         val = 0;
-
-    for (int i = 0; i < 11*11; i++)
-        {
-        txSetFillColor (spu.RAM[i + 100]? TX_RED : TX_BLUE);
-
-        int x = i % 11;
-        int y = i / 11;
-        txCircle (x*55, y*55, 50);
-        }
     }
 
     return REACH_END;
