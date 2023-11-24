@@ -80,14 +80,6 @@ static int      printf_intermed_info (const char * format, ...) __attribute__(( 
 
 int main(int argc, char * argv[])
 {
-    // todelete
-
-    double a = 5.1;
-    const char * country = "Japan";
-    printf_intermed_info("hello %d %s\n", a, country);
-
-    // todelete
-
     fprintf(stdout, "\n"
                     "# Processor by NeTort\n"
                     "# (c) TIKHONOV YAROSLAV 2023\n\n");
